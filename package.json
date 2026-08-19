@@ -1,0 +1,10 @@
+{
+  "name": "fieldradar",
+  "version": "1.0.0",
+  "description": "FieldRadar \u2014 Event Targeting Terminal",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo Ready"
+  },
+  "type": "module"
+}

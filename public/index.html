@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FieldRadar — Event Targeting Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#07090F; --panel:#0E1320; --panel2:#0A0F1A; --line:#1E2637; --line2:#2A3550;
+    --ink:#E7ECF5; --mut:#7C8AA5; --dim:#4A5670;
+    --cyan:#22D3EE; --amber:#F5C518; --hot:#FF3D71; --grn:#7FD34E; --org:#F97316; --teal:#0FA3A3; --cold:#274060;
+    --disp:'Chakra Petch',ui-sans-serif,system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+  .bggrid{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(124,138,165,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(124,138,165,.055) 1px,transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:radial-gradient(ellipse 120% 70% at 50% 0%,#000 25%,transparent 80%);
+    mask-image:radial-gradient(ellipse 120% 70% at 50% 0%,#000 25%,transparent 80%)}
+  #root{position:relative;z-index:1}
+  .wrap{max-width:920px;margin:0 auto;padding:0 16px}
+  .mono{font-family:var(--mono)}
+  .lbl{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--mut)}
+  input,select,button,textarea{font-family:inherit}
+  input,select{background:var(--panel2);border:1px solid var(--line2);color:var(--ink);border-radius:4px;padding:10px 10px;font-size:14px;font-weight:600;outline:none;width:100%}
+  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+  input::placeholder{color:var(--dim)}
+  select{appearance:none;background-image:linear-gradient(45deg,transparent 49%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 51%);background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:26px}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);
+    font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    padding:11px 16px;border-radius:4px;cursor:pointer;transition:transform .12s,filter .12s,box-shadow .12s;white-space:nowrap}
+  .btn:hover{filter:brightness(1.15)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:default;transform:none}
+  .btn-hot{background:var(--amber);border-color:var(--amber);color:#0B0E14;box-shadow:4px 4px 0 rgba(245,197,24,.22)}
+  .btn-hot:hover{box-shadow:2px 2px 0 rgba(245,197,24,.3);transform:translate(1px,1px)}
+  .btn-cyan{border-color:rgba(34,211,238,.5);color:var(--cyan);background:rgba(34,211,238,.06)}
+  .btn-ghost{color:var(--mut)}
+  .btn-sm{padding:8px 11px;font-size:11px}
+  .chip{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line2);color:var(--mut);padding:3px 8px;border-radius:3px}
+  .tog{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border-radius:3px;cursor:pointer;border:1px solid var(--line2);background:transparent;color:var(--mut)}
+  .tog.on{border-color:var(--cyan);color:var(--cyan);background:rgba(34,211,238,.08)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+  .sweep{width:26px;height:26px;border-radius:50%;border:1px solid rgba(34,211,238,.35);position:relative;overflow:hidden;flex:none}
+  .sweep::before{content:"";position:absolute;inset:-1px;background:conic-gradient(from 0deg,rgba(34,211,238,.95),rgba(34,211,238,.25) 55deg,transparent 90deg);animation:rot 3.4s linear infinite}
+  .sweep::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 8px rgba(34,211,238,.35)}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{display:inline-block;animation:spin 1s linear infinite}
+  @media (prefers-reduced-motion:reduce){.sweep::before,.spin{animation:none}}
+  .scorebar{position:absolute;left:0;top:0;bottom:0;width:6px}
+  .card{position:relative;overflow:hidden}
+  .glow{text-shadow:0 0 18px currentColor}
+  a{color:var(--cyan)}
+  .drawer{position:fixed;inset:0;z-index:60;background:rgba(5,7,12,.72);display:flex;justify-content:flex-end}
+  .drawer>div{background:var(--panel);border-left:1px solid var(--line2);width:min(430px,100%);height:100%;overflow-y:auto;padding:20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  @media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
+  .field label{display:block}
+  .field .lbl{display:block;margin-bottom:5px}
+  ::selection{background:rgba(34,211,238,.35)}
+</style>
+</head>
+<body>
+<div class="bggrid" aria-hidden="true"></div>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ============ constants ============ */
+
+/* ============ GEOSPATIAL COORDINATES & HAVERSINE ENGINE ============ */
+const MARKET_GEO_LOOKUP = {"DALLAS, TX": {"lat": 32.7767, "lng": -96.797}, "FORT WORTH, TX": {"lat": 32.7555, "lng": -97.3308}, "TYLER, TX": {"lat": 32.3513, "lng": -95.3011}, "CANTON, TX": {"lat": 32.5565, "lng": -95.8641}, "PLANO, TX": {"lat": 33.0198, "lng": -96.6989}, "FRISCO, TX": {"lat": 33.1507, "lng": -96.8236}, "MCKINNEY, TX": {"lat": 33.1972, "lng": -96.6398}, "DENTON, TX": {"lat": 33.2148, "lng": -97.1331}, "GRAPEVINE, TX": {"lat": 32.9343, "lng": -97.0781}, "AUSTIN, TX": {"lat": 30.2672, "lng": -97.7431}, "HOUSTON, TX": {"lat": 29.7604, "lng": -95.3698}, "SAN ANTONIO, TX": {"lat": 29.4241, "lng": -98.4936}, "MOBILE, AL": {"lat": 30.6954, "lng": -88.0399}, "SARALAND, AL": {"lat": 30.8207, "lng": -88.0706}, "DAPHNE, AL": {"lat": 30.6035, "lng": -87.9036}, "FAIRHOPE, AL": {"lat": 30.523, "lng": -87.9033}, "FOLEY, AL": {"lat": 30.4066, "lng": -87.6836}, "GULF SHORES, AL": {"lat": 30.246, "lng": -87.7008}, "ROBERTSDALE, AL": {"lat": 30.5546, "lng": -87.7119}, "SPANISH FORT, AL": {"lat": 30.6749, "lng": -87.9153}, "BAY MINETTE, AL": {"lat": 30.8829, "lng": -87.773}, "HUNTSVILLE, AL": {"lat": 34.7304, "lng": -86.5861}, "MADISON, AL": {"lat": 34.6993, "lng": -86.7483}, "DECATUR, AL": {"lat": 34.6059, "lng": -86.9833}, "ATHENS, AL": {"lat": 34.8029, "lng": -86.9717}, "BIRMINGHAM, AL": {"lat": 33.5186, "lng": -86.8104}, "ATLANTA, GA": {"lat": 33.749, "lng": -84.388}, "MARIETTA, GA": {"lat": 33.9526, "lng": -84.5499}, "ALPHARETTA, GA": {"lat": 34.0754, "lng": -84.2941}, "ROSWELL, GA": {"lat": 34.0232, "lng": -84.3616}, "DULUTH, GA": {"lat": 34.0029, "lng": -84.1446}, "LAWRENCEVILLE, GA": {"lat": 33.9562, "lng": -83.988}, "SUWANEE, GA": {"lat": 34.052, "lng": -84.072}, "CUMMING, GA": {"lat": 34.2073, "lng": -84.1402}, "STONE MOUNTAIN, GA": {"lat": 33.8082, "lng": -84.1702}, "SANDY SPRINGS, GA": {"lat": 33.9351, "lng": -84.3609}, "MACON, GA": {"lat": 32.8407, "lng": -83.6324}, "PERRY, GA": {"lat": 32.4578, "lng": -83.7432}};
+
+function getMarketCoords(query) {
+  const q = String(query || "").trim().toUpperCase();
+  for (const [key, coords] of Object.entries(MARKET_GEO_LOOKUP)) {
+    const cityKey = key.split(",")[0].trim();
+    if (q === key || q === cityKey || q.includes(cityKey) || key.includes(q)) {
+      return coords;
+    }
+  }
+  return null;
+}
+
+function calcHaversineMiles(lat1, lon1, lat2, lon2) {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
+
+/* ============ NATIONAL AUTOCOMPLETE CITIES DATABASE ============ */
+const CITIES_DB = [{"c": "DALLAS, TX", "sub": "Dallas County \u00b7 DFW Metroplex", "zips": ["75201", "75204", "75205", "75214", "75219", "75225", "75230", "75240", "75248"]}, {"c": "FORT WORTH, TX", "sub": "Tarrant County \u00b7 DFW Metroplex", "zips": ["76102", "76107", "76109", "76132", "76137", "76179"]}, {"c": "TYLER, TX", "sub": "Smith County \u00b7 East Texas Hub", "zips": ["75701", "75702", "75703", "75707", "75708", "75709"]}, {"c": "LONGVIEW, TX", "sub": "Gregg County \u00b7 East Texas", "zips": ["75601", "75602", "75604", "75605"]}, {"c": "CANTON, TX", "sub": "Van Zandt County \u00b7 First Monday Trade Days", "zips": ["75103"]}, {"c": "PLANO, TX", "sub": "Collin County \u00b7 North DFW", "zips": ["75023", "75024", "75025", "75093"]}, {"c": "FRISCO, TX", "sub": "Collin/Denton County \u00b7 North DFW Growth Zone", "zips": ["75033", "75034", "75035", "75036"]}, {"c": "MCKINNEY, TX", "sub": "Collin County \u00b7 Historic Chestnut Square", "zips": ["75069", "75070", "75071", "75072"]}, {"c": "PROSPER, TX", "sub": "Collin/Denton County \u00b7 High Wealth Corridor", "zips": ["75078"]}, {"c": "ARLINGTON, TX", "sub": "Tarrant County \u00b7 Entertainment District", "zips": ["76010", "76011", "76012", "76013", "76017"]}, {"c": "DENTON, TX", "sub": "Denton County \u00b7 North Texas Fairgrounds", "zips": ["76201", "76205", "76207", "76208", "76209", "76210"]}, {"c": "WAXAHACHIE, TX", "sub": "Ellis County \u00b7 Waxahachie Civic Center", "zips": ["75165", "75167"]}, {"c": "AUSTIN, TX", "sub": "Travis County \u00b7 Central Texas Metro", "zips": ["78701", "78702", "78703", "78704", "78745", "78749", "78759"]}, {"c": "ROUND ROCK, TX", "sub": "Williamson County \u00b7 North Austin", "zips": ["78664", "78665", "78681"]}, {"c": "HOUSTON, TX", "sub": "Harris County \u00b7 Greater Houston Metro", "zips": ["77002", "77007", "77019", "77024", "77056", "77079"]}, {"c": "THE WOODLANDS, TX", "sub": "Montgomery County \u00b7 North Houston", "zips": ["77380", "77381", "77382", "77389"]}, {"c": "KATY, TX", "sub": "Harris/Fort Bend County \u00b7 West Houston", "zips": ["77449", "77450", "77493", "77494"]}, {"c": "SAN ANTONIO, TX", "sub": "Bexar County \u00b7 Alamo City", "zips": ["78201", "78205", "78209", "78216", "78232", "78258"]}, {"c": "WACO, TX", "sub": "McLennan County \u00b7 Central Texas", "zips": ["76701", "76706", "76710", "76712"]}, {"c": "LUBBOCK, TX", "sub": "Lubbock County \u00b7 West Texas Hub", "zips": ["79401", "79410", "79423", "79424"]}, {"c": "MOBILE, AL", "sub": "Mobile County \u00b7 Gulf Coast & The Grounds", "zips": ["36602", "36604", "36606", "36608", "36609", "36695"]}, {"c": "SARALAND, AL", "sub": "Mobile County \u00b7 North Mobile Growth Corridor", "zips": ["36571"]}, {"c": "DAPHNE, AL", "sub": "Baldwin County \u00b7 Eastern Shore", "zips": ["36526"]}, {"c": "FAIRHOPE, AL", "sub": "Baldwin County \u00b7 Eastern Shore Art Center", "zips": ["36532", "36533"]}, {"c": "FOLEY, AL", "sub": "Baldwin County \u00b7 Foley Sports Tourism & Farmers Market", "zips": ["36535", "36536"]}, {"c": "GULF SHORES, AL", "sub": "Baldwin County \u00b7 National Shrimp Festival", "zips": ["36542", "36547"]}, {"c": "ORANGE BEACH, AL", "sub": "Baldwin County \u00b7 The Wharf", "zips": ["36561"]}, {"c": "SPANISH FORT, AL", "sub": "Baldwin County \u00b7 North Eastern Shore", "zips": ["36527"]}, {"c": "ROBERTSDALE, AL", "sub": "Baldwin County \u00b7 Central Baldwin Fairgrounds", "zips": ["36567"]}, {"c": "BAY MINETTE, AL", "sub": "Baldwin County \u00b7 North Baldwin County Seat", "zips": ["36507"]}, {"c": "BIRMINGHAM, AL", "sub": "Jefferson County \u00b7 Pepper Place & State Fair", "zips": ["35203", "35205", "35209", "35213", "35216", "35223", "35242"]}, {"c": "HOOVER, AL", "sub": "Shelby/Jefferson County \u00b7 Riverchase Galleria", "zips": ["35226", "35244"]}, {"c": "HUNTSVILLE, AL", "sub": "Madison County \u00b7 Rocket City", "zips": ["35801", "35802", "35805", "35806", "35824"]}, {"c": "MONTGOMERY, AL", "sub": "Montgomery County \u00b7 River Region", "zips": ["36104", "36106", "36117"]}, {"c": "TUSCALOOSA, AL", "sub": "Tuscaloosa County \u00b7 West Alabama", "zips": ["35401", "35404", "35405", "35406"]}, {"c": "AUBURN, AL", "sub": "Lee County \u00b7 East Alabama", "zips": ["36830", "36832"]}, {"c": "ATLANTA, GA", "sub": "Fulton/DeKalb County \u00b7 Metro Atlanta", "zips": ["30303", "30305", "30308", "30309", "30318", "30327", "30339"]}, {"c": "MARIETTA, GA", "sub": "Cobb County \u00b7 Historic Marietta Square", "zips": ["30060", "30062", "30064", "30066", "30067", "30068"]}, {"c": "ALPHARETTA, GA", "sub": "Fulton County \u00b7 North Fulton Wealth Corridor", "zips": ["30004", "30005", "30009", "30022"]}, {"c": "ROSWELL, GA", "sub": "Fulton County \u00b7 Historic Roswell", "zips": ["30075", "30076"]}, {"c": "DULUTH, GA", "sub": "Gwinnett County \u00b7 Gas South Convention Center", "zips": ["30096", "30097"]}, {"c": "LAWRENCEVILLE, GA", "sub": "Gwinnett County \u00b7 Gwinnett Fairgrounds", "zips": ["30043", "30044", "30045", "30046"]}, {"c": "MACON, GA", "sub": "Bibb County \u00b7 Cherry Blossom Festival", "zips": ["31201", "31204", "31210", "31220"]}, {"c": "PERRY, GA", "sub": "Houston County \u00b7 Georgia National Fairgrounds", "zips": ["31069"]}, {"c": "SAVANNAH, GA", "sub": "Chatham County \u00b7 Coastal Georgia", "zips": ["31401", "31404", "31405", "31419"]}, {"c": "AUGUSTA, GA", "sub": "Richmond/Columbia County \u00b7 CSRA", "zips": ["30901", "30904", "30907", "30909"]}, {"c": "TAMPA, FL", "sub": "Hillsborough County \u00b7 Florida State Fairgrounds", "zips": ["33602", "33606", "33609", "33611", "33624", "33647"]}, {"c": "ST. PETERSBURG, FL", "sub": "Pinellas County \u00b7 Saturday Morning Market", "zips": ["33701", "33704", "33705", "33710"]}, {"c": "ORLANDO, FL", "sub": "Orange County \u00b7 Central Florida Metro", "zips": ["32801", "32803", "32819", "32828", "32835"]}, {"c": "CHARLOTTE, NC", "sub": "Mecklenburg County \u00b7 Park Expo & Farmers Market", "zips": ["28202", "28203", "28209", "28211", "28226", "28277"]}, {"c": "RALEIGH, NC", "sub": "Wake County \u00b7 State Farmers Market", "zips": ["27601", "27604", "27607", "27609", "27615"]}, {"c": "GREENVILLE, SC", "sub": "Greenville County \u00b7 Upstate SC Hub", "zips": ["29601", "29605", "29607", "29615"]}, {"c": "NASHVILLE, TN", "sub": "Davidson/Williamson County \u00b7 Music City", "zips": ["37201", "37203", "37212", "37215", "37027", "37064"]}];
+
+/* ============ P0 VERIFIED NATIONAL SEED DATABASE ============ */
+const P0_SEED_EVENTS = [{"id": "al-gulf-01", "name": "53rd Annual National Shrimp Festival", "type": "County Fair/Festival", "city": "Gulf Shores, AL", "venue": "Gulf Shores Public Beach Boardwalk", "sd": "2026-10-08", "ed": "2026-10-11", "lat": 30.246, "lng": -87.7008, "att": 300000, "lo": 260000, "hi": 340000, "ho": 0.67, "booth": 950, "spons": 250, "staff": 700, "travel": 100, "other": 150, "src": "https://myshrimpfest.com/", "appUrl": "https://myshrimpfest.com/vendor-applications/", "appDeadline": "2026-07-15", "vStatus": "open", "org": "Coastal Alabama Business Chamber", "orgContact": "vendors@myshrimpfest.com \u00b7 (251) 968-7200", "homeVal": "$420K", "rules": "Coastal outdoor booth. Weighted tents mandatory. Business license required.", "note": "Gulf Coast flagship festival. Over 300,000 visitors, heavy Baldwin & Mobile homeowner turnout.", "status": "target", "data": "verified_p0"}, {"id": "al-mob-01", "name": "Greater Gulf State Fair", "type": "County Fair/Festival", "city": "Mobile, AL", "venue": "The Grounds (Mobile Fairgrounds)", "sd": "2026-10-30", "ed": "2026-11-08", "lat": 30.6908, "lng": -88.1969, "att": 140000, "lo": 115000, "hi": 165000, "ho": 0.64, "booth": 800, "spons": 0, "staff": 600, "travel": 0, "other": 100, "src": "https://www.greatergulfstatefair.com/", "appUrl": "https://www.greatergulfstatefair.com/commercial-vendors", "appDeadline": "2026-09-01", "vStatus": "open", "org": "The Grounds / Greater Gulf State Fair Inc.", "orgContact": "vendors@thegrounds.com \u00b7 (251) 344-4040", "homeVal": "$240K", "rules": "Indoor air-conditioned commercial building or outdoor fairway spaces.", "note": "Mobile County staple event with 10 days of heavy local homeowner density.", "status": "target", "data": "verified_p0"}, {"id": "al-mob-fm", "name": "Market in the Park \u2014 Cathedral Square Mobile", "type": "Farmers Market", "city": "Mobile, AL", "venue": "Cathedral Square Downtown Mobile", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 30.6897, "lng": -88.0441, "att": 5000, "lo": 3500, "hi": 6500, "ho": 0.76, "booth": 50, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://www.cityofmobile.org/parks-rec/events/", "appUrl": "https://www.cityofmobile.org/parks-rec/market-in-the-park/", "appDeadline": "Open", "vStatus": "open", "org": "City of Mobile Parks & Recreation", "orgContact": "parksandrec@cityofmobile.org \u00b7 (251) 208-1600", "homeVal": "$245K", "rules": "Saturday morning market in Cathedral Square.", "note": "Historic Mobile homeowner fixture, draws Midtown, Spring Hill, and Saraland residents.", "status": "target", "data": "verified_p0"}, {"id": "al-fol-01", "name": "Foley Fall & Heritage Burris Festival", "type": "Community Event", "city": "Foley, AL", "venue": "Foley Civic Center", "sd": "2026-11-05", "ed": "2026-11-06", "lat": 30.4066, "lng": -87.6836, "att": 7500, "lo": 5000, "hi": 10000, "ho": 0.76, "booth": 150, "spons": 0, "staff": 200, "travel": 0, "other": 50, "src": "https://foleysportstourism.com/events/", "appUrl": "https://foleysportstourism.com/vendor-portal/", "appDeadline": "2026-10-01", "vStatus": "open", "org": "City of Foley & Local Business Association", "orgContact": "events@foleyrecreation.com \u00b7 (251) 970-5020", "homeVal": "$310K", "rules": "Local business tables and 10x10 outdoor spaces.", "note": "Hyper-local high homeowner concentration in rapid-growth Baldwin County corridor.", "status": "target", "data": "verified_p0"}, {"id": "al-fol-fm", "name": "Coastal Alabama Farmers & Fishermans Market Foley", "type": "Farmers Market", "city": "Foley, AL", "venue": "20733 Miflin Rd, Foley, AL", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 30.3888, "lng": -87.671, "att": 6000, "lo": 4500, "hi": 7500, "ho": 0.82, "booth": 60, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://coastalmakersmarket.com/", "appUrl": "https://coastalmakersmarket.com/vendor-application/", "appDeadline": "Rolling", "vStatus": "open", "org": "City of Foley Market Board", "orgContact": "info@coastalmakersmarket.com \u00b7 (251) 970-1763", "homeVal": "$320K", "rules": "Year-round Saturday market in covered pavilion.", "note": "82% homeowner rate. Central shopping point for Foley, Elberta, and Gulf Shores homeowners.", "status": "target", "data": "verified_p0"}, {"id": "al-fair-fm", "name": "Fairhope Outdoor Farmers Market", "type": "Farmers Market", "city": "Fairhope, AL", "venue": "Behind Fairhope Public Library", "sd": "2026-08-27", "ed": "2026-08-27", "lat": 30.523, "lng": -87.9033, "att": 4500, "lo": 3000, "hi": 6000, "ho": 0.88, "booth": 45, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://www.fairhopeal.gov/community/farmers-market", "appUrl": "https://www.fairhopeal.gov/departments/parks-and-recreation/farmers-market-application", "appDeadline": "Open", "vStatus": "open", "org": "City of Fairhope Parks & Recreation", "orgContact": "farmersmarket@fairhopeal.gov \u00b7 (251) 928-0002", "homeVal": "$450K", "rules": "Thursday afternoon outdoor market in high-wealth Eastern Shore market.", "note": "Top wealth market in Baldwin County ($450k median home value, 88% homeowners).", "status": "target", "data": "verified_p0"}, {"id": "al-sar-01", "name": "Saraland Harvest Festival & Community Day", "type": "Community Event", "city": "Saraland, AL", "venue": "Saraland City Park (Skidmore Park)", "sd": "2026-10-24", "ed": "2026-10-24", "lat": 30.8207, "lng": -88.0706, "att": 6500, "lo": 4500, "hi": 8500, "ho": 0.78, "booth": 100, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://saralandchamber.com/events/", "appUrl": "https://saralandchamber.com/vendor-booths/", "appDeadline": "2026-10-10", "vStatus": "open", "org": "Saraland Area Chamber of Commerce", "orgContact": "chamber@saralandchamber.com \u00b7 (251) 675-4444", "homeVal": "$235K", "rules": "Local business booths & food vendors in North Mobile county hub.", "note": "High concentration of suburban North Mobile homeowners in established subdivisions.", "status": "target", "data": "verified_p0"}, {"id": "al-rob-01", "name": "Central Baldwin Chamber Business & Community Expo", "type": "Trade/Builder Event", "city": "Robertsdale, AL", "venue": "Baldwin County Coliseum", "sd": "2026-09-17", "ed": "2026-09-17", "lat": 30.5546, "lng": -87.7119, "att": 5000, "lo": 3500, "hi": 6500, "ho": 0.79, "booth": 200, "spons": 0, "staff": 200, "travel": 0, "other": 30, "src": "https://centralbaldwin.com/events/", "appUrl": "https://centralbaldwin.com/expo-vendor-app/", "appDeadline": "2026-09-01", "vStatus": "open", "org": "Central Baldwin Chamber of Commerce", "orgContact": "info@centralbaldwin.com \u00b7 (251) 947-2626", "homeVal": "$290K", "rules": "Indoor air-conditioned trade booths, home services encouraged.", "note": "County-wide crossroad connecting Mobile, Fairhope, Foley, and Bay Minette homeowners.", "status": "target", "data": "verified_p0"}, {"id": "al-mob-pecan", "name": "Mobile Pecan Festival", "type": "County Fair/Festival", "city": "Mobile, AL", "venue": "5055 Carol Plantation Rd, Mobile, AL", "sd": "2026-11-06", "ed": "2026-11-08", "lat": 30.5849, "lng": -88.1697, "att": 35000, "lo": 28000, "hi": 42000, "ho": 0.7, "booth": 250, "spons": 0, "staff": 350, "travel": 0, "other": 50, "src": "https://mobilepecanfestival.com/", "appUrl": "https://mobilepecanfestival.com/vendor-applications/", "appDeadline": "2026-10-15", "vStatus": "open", "org": "Mobile Pecan Festival Board", "orgContact": "info@mobilepecanfestival.com \u00b7 (251) 401-5555", "homeVal": "$255K", "rules": "Outdoor carnival & craft vendor fairway.", "note": "Annual Fall tradition for West Mobile and Theodore homeowners.", "status": "target", "data": "verified_p0"}, {"id": "al-daphne-01", "name": "Jubilee Festival of Arts", "type": "County Fair/Festival", "city": "Daphne, AL", "venue": "Lott Park, Olde Towne Daphne", "sd": "2026-09-26", "ed": "2026-09-27", "lat": 30.6035, "lng": -87.9036, "att": 25000, "lo": 20000, "hi": 30000, "ho": 0.84, "booth": 350, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://www.eschamber.com/jubilee-festival", "appUrl": "https://www.eschamber.com/jubilee-vendor-application", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Eastern Shore Chamber of Commerce", "orgContact": "events@eschamber.com \u00b7 (251) 621-8222", "homeVal": "$390K", "rules": "Outdoor park festival, high-income Eastern Shore crowd.", "note": "Flagship Daphne/Spanish Fort community festival with 84% homeownership rate.", "status": "target", "data": "verified_p0"}, {"id": "al-span-bird", "name": "Alabama Coastal BirdFest & Nature Expo", "type": "Outdoor/Lifestyle Expo", "city": "Spanish Fort, AL", "venue": "5 Rivers Delta Resource Center", "sd": "2026-10-02", "ed": "2026-10-04", "lat": 30.6749, "lng": -87.9153, "att": 8000, "lo": 6000, "hi": 10000, "ho": 0.85, "booth": 175, "spons": 0, "staff": 200, "travel": 0, "other": 30, "src": "https://southalabamalandtrust.org/birdfest/", "appUrl": "https://southalabamalandtrust.org/birdfest-vendors/", "appDeadline": "2026-09-10", "vStatus": "open", "org": "South Alabama Land Trust", "orgContact": "info@southalabamalandtrust.org \u00b7 (251) 990-5004", "homeVal": "$410K", "rules": "Outdoor nature & community vendor village on Causeway.", "note": "Affluent conservation-minded Baldwin and Mobile homeowners.", "status": "target", "data": "verified_p0"}, {"id": "al-ob-wharf", "name": "The Wharf Boat & Yacht Show / Fall Expo", "type": "Outdoor/Lifestyle Expo", "city": "Orange Beach, AL", "venue": "The Wharf at Orange Beach", "sd": "2026-10-16", "ed": "2026-10-18", "lat": 30.2925, "lng": -87.6322, "att": 30000, "lo": 25000, "hi": 35000, "ho": 0.86, "booth": 1200, "spons": 0, "staff": 500, "travel": 0, "other": 100, "src": "https://alwharf.com/", "appUrl": "https://alwharf.com/exhibitor-portal/", "appDeadline": "2026-09-01", "vStatus": "open", "org": "The Wharf Management", "orgContact": "info@alwharf.com \u00b7 (251) 224-1000", "homeVal": "$650K", "rules": "High-end luxury resort village exhibitor spaces.", "note": "Top wealth bracket on the Alabama Gulf Coast ($650k median value).", "status": "target", "data": "verified_p0"}, {"id": "tx-dal-01", "name": "Dallas Build Expo", "type": "Trade/Builder Event", "city": "Dallas, TX", "venue": "Kay Bailey Hutchison Convention Center", "sd": "2026-08-25", "ed": "2026-08-26", "lat": 32.7745, "lng": -96.8016, "att": 10000, "lo": 8000, "hi": 14000, "ho": 0.65, "booth": 950, "spons": 0, "staff": 400, "travel": 0, "other": 100, "src": "https://buildexpousa.com/dallas-build-expo/", "appUrl": "https://buildexpousa.com/dallas-build-expo/exhibit/", "appDeadline": "2026-08-01", "vStatus": "open", "org": "Build Expo USA", "orgContact": "info@buildexpousa.com \u00b7 (877) 211-0152", "homeVal": "$390K", "rules": "Commercial building & roofing exhibitors permitted. 10x10 standard booth.", "note": "Top B2B & builder showcase in North Texas with heavy contractor foot traffic.", "status": "target", "data": "verified_p0"}, {"id": "tx-dal-02", "name": "State Fair of Texas", "type": "County Fair/Festival", "city": "Dallas, TX", "venue": "Fair Park", "sd": "2026-09-25", "ed": "2026-10-18", "lat": 32.776, "lng": -96.761, "att": 2300000, "lo": 2000000, "hi": 2500000, "ho": 0.62, "booth": 2500, "spons": 500, "staff": 1200, "travel": 0, "other": 300, "src": "https://bigtex.com/", "appUrl": "https://bigtex.com/commercial-exhibits/", "appDeadline": "2026-06-30", "vStatus": "open", "org": "State Fair of Texas Commercial Exhibits", "orgContact": "exhibits@bigtex.com \u00b7 (214) 421-8728", "homeVal": "$385K", "rules": "Indoor/Outdoor commercial exhibits. Certificate of Insurance required.", "note": "Largest state fair in North America. Massive multi-week lead volume opportunity.", "status": "target", "data": "verified_p0"}, {"id": "tx-dal-fm", "name": "Dallas Farmers Market (The Shed Weekend Market)", "type": "Farmers Market", "city": "Dallas, TX", "venue": "The Shed at Dallas Farmers Market", "sd": "2026-08-22", "ed": "2026-08-23", "lat": 32.7788, "lng": -96.7905, "att": 25000, "lo": 20000, "hi": 30000, "ho": 0.72, "booth": 250, "spons": 0, "staff": 250, "travel": 0, "other": 50, "src": "https://dallasfarmersmarket.org/", "appUrl": "https://dallasfarmersmarket.org/vendor-opportunities/", "appDeadline": "Rolling Application", "vStatus": "open", "org": "Dallas Farmers Market Management", "orgContact": "info@dallasfarmersmarket.org \u00b7 (214) 664-9110", "homeVal": "$420K", "rules": "Commercial & artisan vendor spaces available on open-air pavilion.", "note": "Flagship downtown market drawing 25,000+ affluent Dallas and Park Cities homeowners every weekend.", "status": "target", "data": "verified_p0"}, {"id": "tx-fw-01", "name": "Fort Worth Home & Garden Show", "type": "Home Show", "city": "Fort Worth, TX", "venue": "Will Rogers Memorial Center", "sd": "2026-09-18", "ed": "2026-09-20", "lat": 32.7441, "lng": -97.3639, "att": 18000, "lo": 15000, "hi": 22000, "ho": 0.74, "booth": 1200, "spons": 0, "staff": 450, "travel": 0, "other": 100, "src": "https://showtechnology.com/shows/fort-worth-home-and-garden-show", "appUrl": "https://showtechnology.com/exhibit", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Show Technology Productions", "orgContact": "exhibits@showtechnology.com \u00b7 (877) 663-6186", "homeVal": "$345K", "rules": "Direct roofing/exteriors category open. Standard 10x10 carpeted booth.", "note": "Premier Tarrant County home improvement crowd with 74% homeownership rate.", "status": "target", "data": "verified_p0"}, {"id": "tx-mck-fm", "name": "McKinney Farmers Market at Chestnut Square", "type": "Farmers Market", "city": "McKinney, TX", "venue": "Chestnut Square Heritage Village", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 33.195, "lng": -96.615, "att": 8000, "lo": 6000, "hi": 10000, "ho": 0.85, "booth": 75, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://www.chestnutsquare.org/farmers-market/", "appUrl": "https://www.chestnutsquare.org/farmers-market-vendor-application/", "appDeadline": "Open", "vStatus": "open", "org": "Heritage Association of Collin County", "orgContact": "market@chestnutsquare.org \u00b7 (972) 562-8790", "homeVal": "$480K", "rules": "Weekly Saturday market in high-income Collin County.", "note": "85% homeowner rate in one of the fastest-growing affluent suburbs in America.", "status": "target", "data": "verified_p0"}, {"id": "tx-plano-balloon", "name": "Plano Balloon Festival & Marketplace", "type": "County Fair/Festival", "city": "Plano, TX", "venue": "Oak Point Park & Nature Preserve", "sd": "2026-09-17", "ed": "2026-09-20", "lat": 33.045, "lng": -96.669, "att": 90000, "lo": 75000, "hi": 105000, "ho": 0.81, "booth": 650, "spons": 0, "staff": 400, "travel": 0, "other": 50, "src": "https://www.planoballoonfest.org/", "appUrl": "https://www.planoballoonfest.org/p/getinvolved/vendors", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Plano Balloon Festival Inc.", "orgContact": "info@planoballoonfest.org \u00b7 (972) 867-7566", "homeVal": "$520K", "rules": "Outdoor festival village, commercial business vendor spaces.", "note": "Major North DFW event with 90,000+ attendees. High income Collin County family demographic.", "status": "target", "data": "verified_p0"}, {"id": "tx-denton-fair", "name": "North Texas State Fair & Rodeo", "type": "County Fair/Festival", "city": "Denton, TX", "venue": "North Texas Fairgrounds", "sd": "2026-08-21", "ed": "2026-08-30", "lat": 33.226, "lng": -97.126, "att": 175000, "lo": 150000, "hi": 200000, "ho": 0.69, "booth": 850, "spons": 0, "staff": 600, "travel": 0, "other": 100, "src": "https://www.ntfair.com/", "appUrl": "https://www.ntfair.com/p/getinvolved/commercial-exhibits", "appDeadline": "2026-08-01", "vStatus": "open", "org": "North Texas State Fair Association", "orgContact": "info@ntfair.com \u00b7 (940) 387-2632", "homeVal": "$360K", "rules": "10-day fair with indoor commercial exhibit spaces.", "note": "Denton and Wise County flagship fair with high rural and suburban homeowner volume.", "status": "target", "data": "verified_p0"}, {"id": "tx-canton-01", "name": "First Monday Trade Days Canton", "type": "Antique/Flea Market", "city": "Canton, TX", "venue": "Canton Trade Days Grounds", "sd": "2026-09-03", "ed": "2026-09-06", "lat": 32.5565, "lng": -95.8641, "att": 100000, "lo": 80000, "hi": 120000, "ho": 0.78, "booth": 350, "spons": 0, "staff": 600, "travel": 100, "other": 100, "src": "https://www.firstmondaycanton.com/", "appUrl": "https://www.firstmondaycanton.com/vendor-info", "appDeadline": "Monthly Re-booking", "vStatus": "open", "org": "City of Canton First Monday Office", "orgContact": "firstmonday@cantontex.com \u00b7 (903) 567-6556", "homeVal": "$310K", "rules": "Indoor and outdoor vendor spaces. Commercial sales permitted.", "note": "World's largest monthly flea market and trade gathering. Massive East TX & DFW homeowner draw.", "status": "target", "data": "verified_p0"}, {"id": "tx-tyl-01", "name": "East Texas State Fair", "type": "County Fair/Festival", "city": "Tyler, TX", "venue": "The Park of East Texas", "sd": "2026-09-25", "ed": "2026-10-04", "lat": 32.392, "lng": -95.34, "att": 250000, "lo": 220000, "hi": 280000, "ho": 0.68, "booth": 850, "spons": 0, "staff": 600, "travel": 0, "other": 150, "src": "https://www.etstatefair.com/", "appUrl": "https://www.etstatefair.com/p/getinvolved/commercial-vendors", "appDeadline": "2026-08-01", "vStatus": "open", "org": "East Texas State Fair Association", "orgContact": "info@etstatefair.com \u00b7 (903) 597-2501", "homeVal": "$285K", "rules": "Commercial vendors allowed in air-conditioned exhibit hall.", "note": "Largest annual regional gathering in East Texas. Strong rural/suburban homeowner base.", "status": "target", "data": "verified_p0"}, {"id": "tx-grapevine-fest", "name": "39th Annual Grapevine Main Street Fest", "type": "County Fair/Festival", "city": "Grapevine, TX", "venue": "Historic Downtown Grapevine Main St", "sd": "2026-09-18", "ed": "2026-09-20", "lat": 32.9343, "lng": -97.0781, "att": 120000, "lo": 100000, "hi": 140000, "ho": 0.8, "booth": 550, "spons": 0, "staff": 400, "travel": 0, "other": 50, "src": "https://www.grapevinetexasusa.com/main-street-fest/", "appUrl": "https://www.grapevinetexasusa.com/main-street-fest/vendor-info/", "appDeadline": "2026-08-01", "vStatus": "open", "org": "Grapevine Convention & Visitors Bureau", "orgContact": "visitorinfo@grapevinetexasusa.com \u00b7 (817) 410-3185", "homeVal": "$540K", "rules": "High-visibility historic street festival. Commercial and artisan booths.", "note": "Attracts Southlake, Colleyville, Grapevine, and Flower Mound high-wealth homeowners.", "status": "target", "data": "verified_p0"}, {"id": "tx-frisco-fm", "name": "Frisco Rotary Farmers Market", "type": "Farmers Market", "city": "Frisco, TX", "venue": "6048 Frisco Square Blvd", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 33.151, "lng": -96.835, "att": 7000, "lo": 5000, "hi": 9000, "ho": 0.86, "booth": 65, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://friscorotaryfarmersmarket.com/", "appUrl": "https://friscorotaryfarmersmarket.com/apply-to-be-a-vendor/", "appDeadline": "Open", "vStatus": "open", "org": "Frisco Rotary Club", "orgContact": "friscofarmersmarket@gmail.com", "homeVal": "$610K", "rules": "Saturday morning market in Frisco Square.", "note": "Top median income in North Texas ($610k median home value, 86% homeowners).", "status": "target", "data": "verified_p0"}, {"id": "tx-cop-fm", "name": "Coppell Farmers Market", "type": "Farmers Market", "city": "Coppell, TX", "venue": "Old Town Coppell Plaza", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 32.955, "lng": -97.018, "att": 6500, "lo": 5000, "hi": 8000, "ho": 0.88, "booth": 65, "spons": 0, "staff": 200, "travel": 0, "other": 20, "src": "https://coppellfarmersmarket.org/", "appUrl": "https://coppellfarmersmarket.org/become-a-vendor/", "appDeadline": "Open", "vStatus": "open", "org": "City of Coppell Farmers Market Committee", "orgContact": "admin@coppellfarmersmarket.org", "homeVal": "$540K", "rules": "Saturday market, vendor application approval required.", "note": "Ultra-affluent suburban Dallas enclave with 88% owner-occupied homes.", "status": "target", "data": "verified_p0"}, {"id": "al-hsv-home", "name": "Huntsville Fall Home & Garden Expo", "type": "Home Show", "city": "Huntsville, AL", "venue": "Von Braun Center (South Hall)", "sd": "2026-09-11", "ed": "2026-09-13", "lat": 34.7275, "lng": -86.5898, "att": 16000, "lo": 13000, "hi": 19000, "ho": 0.77, "booth": 950, "spons": 0, "staff": 400, "travel": 0, "other": 100, "src": "https://huntsvillehomeshows.com/", "appUrl": "https://huntsvillehomeshows.com/exhibitor-packet/", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Huntsville-Madison County Builders Association", "orgContact": "events@hmcba.org \u00b7 (256) 536-2602", "homeVal": "$350K", "rules": "Standard 10x10 booth in VBC South Hall. Roofing category open.", "note": "Rocket City's flagship remodeling expo. 77% homeowner rate in rapidly growing Madison County.", "status": "target", "data": "verified_p0"}, {"id": "al-hsv-greene", "name": "The Greene Street Market at Nativity", "type": "Farmers Market", "city": "Huntsville, AL", "venue": "208 Eustis Ave SE, Downtown Huntsville", "sd": "2026-08-20", "ed": "2026-08-20", "lat": 34.7292, "lng": -86.5835, "att": 4000, "lo": 3000, "hi": 5000, "ho": 0.82, "booth": 40, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://greenestreetmarket.com/", "appUrl": "https://greenestreetmarket.com/apply/", "appDeadline": "Rolling", "vStatus": "open", "org": "Episcopal Church of the Nativity Board", "orgContact": "market@greenestreetmarket.com \u00b7 (256) 539-2612", "homeVal": "$410K", "rules": "Thursday evening market in historic Twickenham / downtown district.", "note": "Attracts downtown, Twickenham, and Blossomwood high-equity homeowners.", "status": "target", "data": "verified_p0"}, {"id": "al-mad-fm", "name": "Madison City Farmers Market", "type": "Farmers Market", "city": "Madison, AL", "venue": "1088 Hughes Rd, Madison, AL (Trinity)", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 34.712, "lng": -86.748, "att": 6000, "lo": 4500, "hi": 7500, "ho": 0.86, "booth": 50, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://madisoncityfarmersmarket.com/", "appUrl": "https://madisoncityfarmersmarket.com/become-a-vendor/", "appDeadline": "Open", "vStatus": "open", "org": "Madison City Farmers Market Advisory Board", "orgContact": "info@madisoncityfarmersmarket.com", "homeVal": "$430K", "rules": "Saturday morning market serving City of Madison families.", "note": "Madison City highest median household income in Alabama. 86% homeowners.", "status": "target", "data": "verified_p0"}, {"id": "al-hsv-midcity", "name": "MidCity District Market & Fall Showcase", "type": "Community Event", "city": "Huntsville, AL", "venue": "The Camp at MidCity, 5909 University Dr", "sd": "2026-09-06", "ed": "2026-09-06", "lat": 34.733, "lng": -86.671, "att": 8000, "lo": 6000, "hi": 10000, "ho": 0.72, "booth": 125, "spons": 0, "staff": 200, "travel": 0, "other": 30, "src": "https://explorethecamp.com/events/", "appUrl": "https://explorethecamp.com/vendor-application/", "appDeadline": "2026-08-25", "vStatus": "open", "org": "MidCity District Management", "orgContact": "events@explorethecamp.com", "homeVal": "$360K", "rules": "Sunday outdoor community marketplace.", "note": "High foot-traffic entertainment district connecting Huntsville and Madison corridors.", "status": "target", "data": "verified_p0"}, {"id": "al-ath-fiddlers", "name": "59th Annual Tennessee Valley Fiddlers Convention & Arts Market", "type": "County Fair/Festival", "city": "Athens, AL", "venue": "Athens State University Campus Grounds", "sd": "2026-10-01", "ed": "2026-10-03", "lat": 34.8018, "lng": -86.9717, "att": 20000, "lo": 16000, "hi": 24000, "ho": 0.78, "booth": 300, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://tvfiddlers.com/", "appUrl": "https://tvfiddlers.com/crafts-vendors/", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Athens State University Foundation", "orgContact": "fiddlers@athens.edu \u00b7 (256) 233-8215", "homeVal": "$285K", "rules": "Outdoor campus festival, high-traffic craft and trade village.", "note": "Limestone County flagship festival drawing 20,000+ homeowners from Athens and North Madison.", "status": "target", "data": "verified_p0"}, {"id": "al-dec-riverfest", "name": "Decatur Riverfest & Community Expo", "type": "County Fair/Festival", "city": "Decatur, AL", "venue": "Ingalls Harbor Pavilion", "sd": "2026-09-18", "ed": "2026-09-19", "lat": 34.618, "lng": -86.992, "att": 15000, "lo": 12000, "hi": 18000, "ho": 0.7, "booth": 250, "spons": 0, "staff": 250, "travel": 0, "other": 50, "src": "https://www.decaturriverfest.com/", "appUrl": "https://www.decaturriverfest.com/vendor-applications/", "appDeadline": "2026-08-25", "vStatus": "open", "org": "Decatur Morgan County Tourism", "orgContact": "info@decaturcvb.org \u00b7 (256) 350-2028", "homeVal": "$240K", "rules": "Covered pavilion & outdoor waterfront spaces.", "note": "Morgan County signature festival drawing homeowners across Decatur, Hartselle, and Priceville.", "status": "target", "data": "verified_p0"}, {"id": "al-hsv-montesano", "name": "Monte Sano Art & Craft Festival", "type": "County Fair/Festival", "city": "Huntsville, AL", "venue": "Monte Sano State Park", "sd": "2026-09-19", "ed": "2026-09-20", "lat": 34.743, "lng": -86.513, "att": 18000, "lo": 14000, "hi": 22000, "ho": 0.85, "booth": 350, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://www.artshuntsville.org/events/monte-sano-art-festival/", "appUrl": "https://www.artshuntsville.org/artist-vendor-application/", "appDeadline": "2026-07-15", "vStatus": "open", "org": "Arts Huntsville & Alabama State Parks", "orgContact": "info@artshuntsville.org \u00b7 (256) 519-2787", "homeVal": "$440K", "rules": "State park wooded setting, commercial & artisan exhibits.", "note": "Prestigious 24-year North Alabama art festival attracting top-tier Huntsville homeowners.", "status": "target", "data": "verified_p0"}, {"id": "al-gunter-hydro", "name": "Lake Guntersville HydroFest & Vendor Village", "type": "Sports/Family Event", "city": "Guntersville, AL", "venue": "Sunset Drive Waterfront Park", "sd": "2026-09-26", "ed": "2026-09-27", "lat": 34.3582, "lng": -86.2947, "att": 22000, "lo": 18000, "hi": 26000, "ho": 0.81, "booth": 400, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://guntersvillehydrofest.com/", "appUrl": "https://guntersvillehydrofest.com/become-a-vendor/", "appDeadline": "2026-08-30", "vStatus": "open", "org": "Marshall County Tourism & Sports", "orgContact": "info@guntersvillehydrofest.com \u00b7 (256) 582-7015", "homeVal": "$370K", "rules": "Waterfront outdoor event with commercial tent row.", "note": "Marshall and Madison County lakefront homeowners and boat owners.", "status": "target", "data": "verified_p0"}, {"id": "ga-atl-01", "name": "Atlanta Home Show", "type": "Home Show", "city": "Atlanta, GA", "venue": "Cobb Galleria Centre", "sd": "2026-09-18", "ed": "2026-09-20", "lat": 33.8837, "lng": -84.4682, "att": 28000, "lo": 24000, "hi": 32000, "ho": 0.78, "booth": 1600, "spons": 0, "staff": 600, "travel": 0, "other": 200, "src": "https://atlantahomeshow.com/", "appUrl": "https://atlantahomeshow.com/exhibitor-information", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Marketplace Events", "orgContact": "atlantasales@marketplaceevents.com \u00b7 (770) 798-1997", "homeVal": "$460K", "rules": "Marketplace Events standards. Category caps enforced on roofing.", "note": "The flagship home improvement event in the state of Georgia. 78% owner-occupied.", "status": "target", "data": "verified_p0"}, {"id": "ga-dul-01", "name": "North Atlanta Home Show", "type": "Home Show", "city": "Duluth, GA", "venue": "Gas South Convention Center", "sd": "2026-10-23", "ed": "2026-10-25", "lat": 33.9922, "lng": -84.0935, "att": 19000, "lo": 16000, "hi": 22000, "ho": 0.81, "booth": 1350, "spons": 0, "staff": 450, "travel": 0, "other": 100, "src": "https://northatlantahomeshow.com/", "appUrl": "https://northatlantahomeshow.com/exhibit", "appDeadline": "2026-09-15", "vStatus": "open", "org": "Marketplace Events", "orgContact": "northatlantasales@marketplaceevents.com", "homeVal": "$510K", "rules": "Gwinnett/Fulton high-end remodeling showcase.", "note": "Gwinnett County highest-income suburban corridor. 81% homeownership rate.", "status": "target", "data": "verified_p0"}, {"id": "ga-stone-01", "name": "57th Annual Yellow Daisy Festival", "type": "County Fair/Festival", "city": "Stone Mountain, GA", "venue": "Stone Mountain Park Special Events Meadow", "sd": "2026-09-10", "ed": "2026-09-13", "lat": 33.8053, "lng": -84.1455, "att": 200000, "lo": 175000, "hi": 225000, "ho": 0.74, "booth": 650, "spons": 0, "staff": 600, "travel": 0, "other": 100, "src": "https://stonemountainpark.com/activity/events/yellow-daisy-festival/", "appUrl": "https://stonemountainpark.com/vendor-applications/", "appDeadline": "2026-07-01", "vStatus": "open", "org": "Stone Mountain Park & Events Committee", "orgContact": "yellowdaisy@stonemountainpark.com \u00b7 (770) 498-5690", "homeVal": "$360K", "rules": "4-day premier arts, crafts, and commercial festival.", "note": "Ranked the #1 Arts & Crafts show in the nation by Sunshine Artist Magazine. 200,000+ attendees.", "status": "target", "data": "verified_p0"}, {"id": "ga-mar-fm", "name": "Marietta Square Farmers Market", "type": "Farmers Market", "city": "Marietta, GA", "venue": "Historic Marietta Square", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 33.9526, "lng": -84.5499, "att": 12000, "lo": 9000, "hi": 15000, "ho": 0.82, "booth": 80, "spons": 0, "staff": 250, "travel": 0, "other": 25, "src": "https://www.mariettasquarefarmersmarket.com/", "appUrl": "https://www.mariettasquarefarmersmarket.com/vendor-application/", "appDeadline": "Open", "vStatus": "open", "org": "Marietta Square Market Association", "orgContact": "john@mariettasquarefarmersmarket.com", "homeVal": "$440K", "rules": "Weekly Saturday market on historic square.", "note": "Cobb County powerhouse market. Draws thousands of affluent West Cobb homeowners.", "status": "target", "data": "verified_p0"}, {"id": "ga-alp-fm", "name": "Alpharetta Farmers Market", "type": "Farmers Market", "city": "Alpharetta, GA", "venue": "Town Green Downtown Alpharetta", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 34.0754, "lng": -84.2941, "att": 9000, "lo": 7000, "hi": 11000, "ho": 0.86, "booth": 95, "spons": 0, "staff": 250, "travel": 0, "other": 25, "src": "https://www.alpharettafarmersmarket.com/", "appUrl": "https://www.alpharettafarmersmarket.com/applications", "appDeadline": "Open", "vStatus": "open", "org": "Alpharetta Business Association", "orgContact": "info@alpharettabusinessassociation.com", "homeVal": "$680K", "rules": "North Fulton affluent suburban market.", "note": "Top 1% income zip in Georgia ($680k median home value, 86% homeowners).", "status": "target", "data": "verified_p0"}, {"id": "ga-gwinnett-fair", "name": "Gwinnett County Fair", "type": "County Fair/Festival", "city": "Lawrenceville, GA", "venue": "Gwinnett County Fairgrounds, 2405 Sugarloaf Pkwy", "sd": "2026-09-17", "ed": "2026-09-27", "lat": 33.935, "lng": -83.987, "att": 220000, "lo": 190000, "hi": 250000, "ho": 0.72, "booth": 1100, "spons": 0, "staff": 700, "travel": 0, "other": 100, "src": "https://gwinnettcountyfair.com/", "appUrl": "https://gwinnettcountyfair.com/commercial-vendors/", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Gwinnett County Fair Association", "orgContact": "info@gwinnettcountyfair.com \u00b7 (770) 963-6522", "homeVal": "$380K", "rules": "11-day county fair, indoor commercial exhibit building.", "note": "Huge suburban draw across Lawrenceville, Suwanee, Buford, and Grayson.", "status": "target", "data": "verified_p0"}, {"id": "ga-cumming-fair", "name": "Cumming Country Fair & Festival", "type": "County Fair/Festival", "city": "Cumming, GA", "venue": "Cumming Fairgrounds, 235 Castleberry Rd", "sd": "2026-10-01", "ed": "2026-10-11", "lat": 34.202, "lng": -84.148, "att": 160000, "lo": 135000, "hi": 185000, "ho": 0.83, "booth": 850, "spons": 0, "staff": 500, "travel": 0, "other": 100, "src": "https://cummingfair.net/", "appUrl": "https://cummingfair.net/vendor-applications/", "appDeadline": "2026-08-20", "vStatus": "open", "org": "City of Cumming Fairgrounds Board", "orgContact": "cummingfair@cityofcumming.net \u00b7 (770) 781-3491", "homeVal": "$560K", "rules": "Forsyth County premier annual festival.", "note": "Forsyth County is the wealthiest county in Georgia ($560k median home value, 83% homeowners).", "status": "target", "data": "verified_p0"}, {"id": "ga-sandy-fm", "name": "Sandy Springs Farmers Market", "type": "Farmers Market", "city": "Sandy Springs, GA", "venue": "City Green at City Springs", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 33.929, "lng": -84.378, "att": 7500, "lo": 5500, "hi": 9500, "ho": 0.79, "booth": 85, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://citysprings.com/farmersmarket", "appUrl": "https://citysprings.com/farmersmarket/vendors", "appDeadline": "Open", "vStatus": "open", "org": "City of Sandy Springs", "orgContact": "farmersmarket@sandyspringsga.gov \u00b7 (770) 730-5600", "homeVal": "$610K", "rules": "Saturday morning market on City Green plaza.", "note": "Prime North Atlanta enclave with 79% homeownership and high remodeling intent.", "status": "target", "data": "verified_p0"}, {"id": "ga-suwanee-fest", "name": "42nd Annual Suwanee Fest & Vendor Village", "type": "Community Event", "city": "Suwanee, GA", "venue": "Suwanee Town Center Park", "sd": "2026-09-19", "ed": "2026-09-20", "lat": 34.052, "lng": -84.072, "att": 55000, "lo": 45000, "hi": 65000, "ho": 0.85, "booth": 400, "spons": 0, "staff": 350, "travel": 0, "other": 50, "src": "https://suwaneefest.com/", "appUrl": "https://suwaneefest.com/vendor-information/", "appDeadline": "2026-08-01", "vStatus": "open", "org": "City of Suwanee Events Committee", "orgContact": "info@suwaneefest.com \u00b7 (770) 945-8996", "homeVal": "$490K", "rules": "2-day city festival with 200+ vendor booths around Town Center green.", "note": "Top rated North Gwinnett community festival with 85% homeowner rate.", "status": "target", "data": "verified_p0"}, {"id": "ga-piedmont-gm", "name": "Piedmont Park Green Market", "type": "Farmers Market", "city": "Atlanta, GA", "venue": "12th Street & Piedmont Ave Entrance", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 33.7845, "lng": -84.3739, "att": 10000, "lo": 8000, "hi": 12000, "ho": 0.73, "booth": 95, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://piedmontpark.org/green-market/", "appUrl": "https://piedmontpark.org/green-market-vendors/", "appDeadline": "Open", "vStatus": "open", "org": "Piedmont Park Conservancy", "orgContact": "greenmarket@piedmontpark.org \u00b7 (404) 875-7275", "homeVal": "$520K", "rules": "Saturday market serving Midtown and Virginia-Highland homeowners.", "note": "Historic Intown Atlanta community market with dense property owners.", "status": "target", "data": "verified_p0"}, {"id": "ga-peachtree-fm", "name": "Peachtree Road Farmers Market Buckhead", "type": "Farmers Market", "city": "Atlanta, GA", "venue": "Cathedral of St. Philip, 2744 Peachtree Rd", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 33.83, "lng": -84.385, "att": 8500, "lo": 6500, "hi": 10500, "ho": 0.85, "booth": 110, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://peachtreeroadfarmersmarket.com/", "appUrl": "https://peachtreeroadfarmersmarket.com/apply/", "appDeadline": "Rolling", "vStatus": "open", "org": "Cathedral of St. Philip Community Board", "orgContact": "info@peachtreeroadfarmersmarket.com", "homeVal": "$790K", "rules": "Buckhead flagship Saturday market.", "note": "Highest net worth market in the state of Georgia ($790k median value, 85% homeowners).", "status": "target", "data": "verified_p0"}, {"id": "ga-roswell-arts", "name": "57th Annual Roswell Arts & Crafts Festival", "type": "County Fair/Festival", "city": "Roswell, GA", "venue": "Historic Roswell Town Square", "sd": "2026-09-19", "ed": "2026-09-20", "lat": 34.018, "lng": -84.363, "att": 30000, "lo": 24000, "hi": 36000, "ho": 0.83, "booth": 450, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://roswellartfestival.com/", "appUrl": "https://roswellartfestival.com/vendor-applications/", "appDeadline": "2026-08-01", "vStatus": "open", "org": "Roswell Woman's Club", "orgContact": "info@roswellartfestival.com", "homeVal": "$580K", "rules": "Outdoor historic square festival, high foot traffic.", "note": "Premier North Fulton community arts festival with affluent suburban homeowners.", "status": "target", "data": "verified_p0"}, {"id": "ga-per-01", "name": "Georgia National Fair", "type": "County Fair/Festival", "city": "Perry, GA", "venue": "Georgia National Fairgrounds", "sd": "2026-10-08", "ed": "2026-10-18", "lat": 32.4578, "lng": -83.7432, "att": 550000, "lo": 500000, "hi": 600000, "ho": 0.7, "booth": 1800, "spons": 0, "staff": 1000, "travel": 250, "other": 200, "src": "https://georgianationalfair.com/", "appUrl": "https://georgianationalfair.com/commercial-vendors/", "appDeadline": "2026-07-01", "vStatus": "open", "org": "Georgia Agricultural Exposition Authority", "orgContact": "commercial@gnfa.com \u00b7 (478) 987-3247", "homeVal": "$270K", "rules": "Multi-day commitment. Commercial building and outdoor spaces.", "note": "Massive statewide attendance. Central Georgia homeowner goldmine.", "status": "target", "data": "verified_p0"}, {"id": "tx-allen-nationwide", "name": "Collin County Fall Home Expo (Nationwide Expos)", "type": "Home Show", "city": "Allen, TX", "venue": "Credit Union of Texas Event Center (Allen)", "sd": "2026-10-09", "ed": "2026-10-11", "lat": 33.106, "lng": -96.666, "att": 14000, "lo": 11000, "hi": 17000, "ho": 0.84, "booth": 1100, "spons": 0, "staff": 400, "travel": 0, "other": 100, "src": "https://nationwideexpos.com/locations/dallas-fort-worth/", "appUrl": "https://nationwideexpos.com/exhibitors/", "appDeadline": "2026-09-15", "vStatus": "open", "org": "Nationwide Expos", "orgContact": "info@nationwideexpos.com \u00b7 (800) 201-4663", "homeVal": "$510K", "rules": "Major national home show producer. Direct roofing booths permitted.", "note": "Serves high-wealth Collin County homeowners (Allen, McKinney, Plano, Fairview).", "status": "target", "data": "nationwide_expos"}, {"id": "tx-conroe-nationwide", "name": "Montgomery County Home & Outdoor Living Show (Nationwide Expos)", "type": "Home Show", "city": "Conroe, TX", "venue": "Lone Star Convention & Expo Center", "sd": "2026-08-29", "ed": "2026-08-30", "lat": 30.334, "lng": -95.42, "att": 15000, "lo": 12000, "hi": 18000, "ho": 0.8, "booth": 950, "spons": 0, "staff": 400, "travel": 0, "other": 100, "src": "https://nationwideexpos.com/locations/houston/", "appUrl": "https://nationwideexpos.com/exhibitors/", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Nationwide Expos & Quality Home Shows", "orgContact": "houston@nationwideexpos.com \u00b7 (800) 201-4663", "homeVal": "$370K", "rules": "Indoor air-conditioned expo center. 10x10 standard exhibitor stalls.", "note": "Top North Houston and The Woodlands homeowner draw. High replacement intent.", "status": "target", "data": "nationwide_expos"}, {"id": "ga-atl-acs", "name": "Atlanta Home & Remodeling Show (American Consumer Shows)", "type": "Home Show", "city": "Atlanta, GA", "venue": "Atlanta Convention Center at AmericasMart", "sd": "2026-10-02", "ed": "2026-10-04", "lat": 33.759, "lng": -84.389, "att": 22000, "lo": 18000, "hi": 26000, "ho": 0.77, "booth": 1400, "spons": 0, "staff": 500, "travel": 0, "other": 150, "src": "https://acsshows.com/atlanta-home-show/", "appUrl": "https://acsshows.com/exhibit/", "appDeadline": "2026-09-01", "vStatus": "open", "org": "American Consumer Shows (ACS)", "orgContact": "info@acsshows.com \u00b7 (516) 422-8100", "homeVal": "$480K", "rules": "National ACS producer standards. Category exclusivity packages available.", "note": "Major multi-metro home improvement showcase drawing across Intown and Metro Atlanta.", "status": "target", "data": "acs_shows"}, {"id": "al-bham-nationwide", "name": "Birmingham Fall Home Expo (Nationwide Expos)", "type": "Home Show", "city": "Birmingham, AL", "venue": "Birmingham-Jefferson Convention Complex (BJCC)", "sd": "2026-10-09", "ed": "2026-10-11", "lat": 33.524, "lng": -86.812, "att": 16000, "lo": 13000, "hi": 19000, "ho": 0.75, "booth": 950, "spons": 0, "staff": 400, "travel": 0, "other": 100, "src": "https://nationwideexpos.com/locations/birmingham/", "appUrl": "https://nationwideexpos.com/exhibitors/", "appDeadline": "2026-09-15", "vStatus": "open", "org": "Nationwide Expos", "orgContact": "birmingham@nationwideexpos.com \u00b7 (800) 201-4663", "homeVal": "$310K", "rules": "BJCC Exhibition Hall. Commercial vendor passes included.", "note": "Central Alabama premier fall home remodeling and exterior showcase.", "status": "target", "data": "nationwide_expos"}, {"id": "al-mob-makers", "name": "Mobile Bay Makers & Small Business Expo (Eventbrite)", "type": "Community Event", "city": "Mobile, AL", "venue": "Arthur R. Outlaw Mobile Convention Center", "sd": "2026-09-12", "ed": "2026-09-13", "lat": 30.688, "lng": -88.037, "att": 8500, "lo": 6500, "hi": 10500, "ho": 0.72, "booth": 200, "spons": 0, "staff": 250, "travel": 0, "other": 30, "src": "https://www.eventbrite.com/d/al--mobile/home-improvement-expos/", "appUrl": "https://www.eventbrite.com/e/mobile-bay-makers-small-business-expo-tickets", "appDeadline": "2026-08-30", "vStatus": "open", "org": "Gulf Coast Makers Network", "orgContact": "events@gulfcoastmakers.org", "homeVal": "$250K", "rules": "Local home services and artisan business booths.", "note": "High-traffic weekend convention center expo targeting Mobile Bay property owners.", "status": "target", "data": "eventbrite"}, {"id": "tx-mesquite-expo", "name": "DFW Home & Small Business Expo (Eventbrite)", "type": "Trade/Builder Event", "city": "Dallas, TX", "venue": "Mesquite Convention Center, 1700 Rodeo Dr", "sd": "2026-09-19", "ed": "2026-09-19", "lat": 32.766, "lng": -96.612, "att": 7000, "lo": 5000, "hi": 9000, "ho": 0.74, "booth": 250, "spons": 0, "staff": 250, "travel": 0, "other": 30, "src": "https://www.eventbrite.com/d/tx--dallas/home-and-garden-shows/", "appUrl": "https://www.eventbrite.com/e/dfw-home-small-business-expo-tickets", "appDeadline": "2026-09-05", "vStatus": "open", "org": "Texas Trade Network", "orgContact": "vendorinfo@txtradenetwork.com", "homeVal": "$320K", "rules": "1-day concentrated business and home remodeling showcase.", "note": "High conversion East Dallas and Mesquite suburban homeowner audience.", "status": "target", "data": "eventbrite"}, {"id": "al-cruisin-coast", "name": "Cruisin' The Coast Gulf Coast Rod Run & Expo", "type": "Car/Boat/Rod Show", "city": "Gulf Shores, AL", "venue": "Gulf Coast Highway 98 / Beach Boulevard Corridor", "sd": "2026-10-04", "ed": "2026-10-11", "lat": 30.246, "lng": -87.7008, "att": 120000, "lo": 100000, "hi": 140000, "ho": 0.88, "booth": 650, "spons": 0, "staff": 400, "travel": 50, "other": 50, "src": "https://cruisinthecoast.com/", "appUrl": "https://cruisinthecoast.com/swap-meet-car-corral/", "appDeadline": "2026-08-30", "vStatus": "open", "org": "Cruisin' The Coast Inc.", "orgContact": "cruisinthecoast@cableone.net \u00b7 (228) 385-3847", "homeVal": "$440K", "rules": "Car show swap meet & commercial vendor spaces along beachfront.", "note": "Huge disposable income demographic: classic car owners, 88% homeownership rate.", "status": "target", "data": "grassroots_verified"}, {"id": "al-daphne-yard", "name": "Eastern Shore Multi-Subdivision Fall Yard Sale Weekend", "type": "Community/HOA Yard Sale", "city": "Daphne, AL", "venue": "Lake Forest & Ottawa Springs Subdivisions", "sd": "2026-10-17", "ed": "2026-10-18", "lat": 30.6035, "lng": -87.9036, "att": 15000, "lo": 12000, "hi": 18000, "ho": 0.94, "booth": 0, "spons": 50, "staff": 150, "travel": 0, "other": 20, "src": "https://lakeforestdaphne.com/", "appUrl": "https://lakeforestdaphne.com/community-events/", "appDeadline": "Open / Street Canvass", "vStatus": "open", "org": "Lake Forest HOA Community Board", "orgContact": "hoa@lakeforestdaphne.com \u00b7 (251) 626-0788", "homeVal": "$320K", "rules": "Subdivision wide sale. Pop-up tent at main entrance with coffee/donuts permitted.", "note": "3,000+ single family homes in one continuous neighborhood. 94% owner-occupied.", "status": "target", "data": "grassroots_verified"}, {"id": "al-fairhope-craft", "name": "Eastern Shore Art Center Outdoor Fall Craft Fair", "type": "Craft/Artisan Fair", "city": "Fairhope, AL", "venue": "401 Oak St, Downtown Fairhope", "sd": "2026-11-14", "ed": "2026-11-15", "lat": 30.523, "lng": -87.9033, "att": 12000, "lo": 9000, "hi": 15000, "ho": 0.89, "booth": 175, "spons": 0, "staff": 200, "travel": 0, "other": 30, "src": "https://esartcenter.org/", "appUrl": "https://esartcenter.org/exhibits-events/outdoor-fair-application/", "appDeadline": "2026-10-01", "vStatus": "open", "org": "Eastern Shore Art Center Board", "orgContact": "info@esartcenter.org \u00b7 (251) 928-2228", "homeVal": "$480K", "rules": "Outdoor artisan & local business spaces under historic oaks.", "note": "High female homeowner decision-maker density. Prime exterior styling & window leads.", "status": "target", "data": "grassroots_verified"}, {"id": "al-foley-flea", "name": "Foley Mega Flea Market & Trades Day", "type": "Swap Meet/Flea Market", "city": "Foley, AL", "venue": "Foley Flea Market Grounds, 22216 US-98", "sd": "2026-09-05", "ed": "2026-09-06", "lat": 30.4066, "lng": -87.6836, "att": 14000, "lo": 11000, "hi": 17000, "ho": 0.77, "booth": 60, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://foleyfleamarket.com/", "appUrl": "https://foleyfleamarket.com/rent-a-booth/", "appDeadline": "Weekly re-booking", "vStatus": "open", "org": "Baldwin Flea & Trade Management", "orgContact": "info@foleyfleamarket.com \u00b7 (251) 943-4903", "homeVal": "$310K", "rules": "Covered and outdoor spaces. Weekly contractor booths welcome.", "note": "South Baldwin fixture: property owners shopping for materials and home repairs.", "status": "target", "data": "grassroots_verified"}, {"id": "tx-caffeine-dfw", "name": "Caffeine & Octane DFW Car Show & Vendor Alley", "type": "Car/Boat/Rod Show", "city": "Dallas, TX", "venue": "Texas Motor Speedway Infield", "sd": "2026-09-05", "ed": "2026-09-05", "lat": 33.036, "lng": -97.282, "att": 35000, "lo": 28000, "hi": 42000, "ho": 0.85, "booth": 350, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://www.caffeineandoctane.com/texas", "appUrl": "https://www.caffeineandoctane.com/vendor-registration", "appDeadline": "2026-08-25", "vStatus": "open", "org": "Caffeine & Octane Texas", "orgContact": "vendors@caffeineandoctane.com", "homeVal": "$440K", "rules": "10x10 and 10x20 sponsor and vendor booths in automotive alley.", "note": "Huge crowd of car enthusiasts, garage builders, and suburban Dallas/Fort Worth homeowners.", "status": "target", "data": "grassroots_verified"}, {"id": "tx-plano-garage", "name": "Stonebridge Ranch & West Plano Multi-HOA Yard Sale Trail", "type": "Community/HOA Yard Sale", "city": "Plano, TX", "venue": "Stonebridge Ranch & Willow Bend Subdivisions", "sd": "2026-09-19", "ed": "2026-09-20", "lat": 33.0198, "lng": -96.6989, "att": 25000, "lo": 20000, "hi": 30000, "ho": 0.92, "booth": 0, "spons": 100, "staff": 250, "travel": 0, "other": 50, "src": "https://stonebridgeranch.com/", "appUrl": "https://stonebridgeranch.com/community-garage-sale/", "appDeadline": "Open Canvass", "vStatus": "open", "org": "Stonebridge Ranch Community Association", "orgContact": "lifestyle@stonebridgeranch.com \u00b7 (214) 733-5800", "homeVal": "$560K", "rules": "Neighborhood wide garage sale weekend. Street entrance brand activation.", "note": "5,000+ executive homes in high-equity Collin County corridor. 92% homeowners.", "status": "target", "data": "grassroots_verified"}, {"id": "tx-traders-village", "name": "Traders Village Grand Prairie Mega Swap Meet", "type": "Swap Meet/Flea Market", "city": "Dallas, TX", "venue": "Traders Village, 2602 Mayfield Rd, Grand Prairie, TX", "sd": "2026-08-29", "ed": "2026-08-30", "lat": 32.701, "lng": -97.051, "att": 40000, "lo": 32000, "hi": 48000, "ho": 0.71, "booth": 180, "spons": 0, "staff": 300, "travel": 0, "other": 40, "src": "https://tradersvillage.com/grand-prairie/", "appUrl": "https://tradersvillage.com/grand-prairie/become-a-dealer/", "appDeadline": "Weekly Dealer Registration", "vStatus": "open", "org": "Traders Village Management", "orgContact": "gpinfo@tradersvillage.com \u00b7 (972) 647-2331", "homeVal": "$320K", "rules": "Permanent and weekend dealer spaces with high pedestrian volume.", "note": "Central DFW shopping powerhouse drawing 40,000+ local homeowners every weekend.", "status": "target", "data": "grassroots_verified"}, {"id": "tx-waxa-craft", "name": "Waxahachie Crafters Guild Fall Holiday Bazaar", "type": "Craft/Artisan Fair", "city": "Waxahachie, TX", "venue": "Waxahachie Civic Center", "sd": "2026-10-17", "ed": "2026-10-18", "lat": 32.3865, "lng": -96.8483, "att": 10000, "lo": 8000, "hi": 12000, "ho": 0.81, "booth": 220, "spons": 0, "staff": 200, "travel": 0, "other": 30, "src": "https://www.waxahachieciviccenter.org/", "appUrl": "https://www.waxahachieciviccenter.org/vendor-opportunities/", "appDeadline": "2026-09-20", "vStatus": "open", "org": "Ellis County Crafters Guild", "orgContact": "events@waxahachieciviccenter.org \u00b7 (972) 938-3434", "homeVal": "$360K", "rules": "Indoor air-conditioned craft and home decor fair.", "note": "High concentration of South DFW homeowners looking for holiday home updates.", "status": "target", "data": "grassroots_verified"}, {"id": "tx-dfw-reia", "name": "DFW Real Estate Investors & Contractor Expo", "type": "B2B & Networking Expo", "city": "Arlington, TX", "venue": "Sheraton Arlington Hotel & Convention Center", "sd": "2026-09-24", "ed": "2026-09-24", "lat": 32.755, "lng": -97.091, "att": 2500, "lo": 1800, "hi": 3200, "ho": 0.9, "booth": 450, "spons": 0, "staff": 200, "travel": 0, "other": 50, "src": "https://www.dfwreia.com/", "appUrl": "https://www.dfwreia.com/vendor-sponsor-packages/", "appDeadline": "2026-09-10", "vStatus": "open", "org": "DFW Real Estate Investors Association", "orgContact": "info@dfwreia.com \u00b7 (817) 560-1700", "homeVal": "$410K", "rules": "B2B vendor tables, trade show banner setups.", "note": "Landlords, flippers, and property owners seeking reliable reroofing partners.", "status": "target", "data": "grassroots_verified"}, {"id": "al-hsv-car", "name": "Rocket City Classic Car Show & Swap Meet", "type": "Car/Boat/Rod Show", "city": "Huntsville, AL", "venue": "MidCity District / The Camp Grounds", "sd": "2026-10-10", "ed": "2026-10-10", "lat": 34.733, "lng": -86.671, "att": 12000, "lo": 9000, "hi": 15000, "ho": 0.83, "booth": 150, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://explorethecamp.com/", "appUrl": "https://explorethecamp.com/car-show-vendor/", "appDeadline": "2026-09-25", "vStatus": "open", "org": "North Alabama Antique Automobile Club", "orgContact": "carshow@explorethecamp.com", "homeVal": "$380K", "rules": "Outdoor paved parking lot booth spaces.", "note": "Attracts affluent defense/aerospace engineers who own property across Madison County.", "status": "target", "data": "grassroots_verified"}, {"id": "al-mad-yard", "name": "Clift Cove & Mill Creek Multi-Subdivision Garage Sale", "type": "Community/HOA Yard Sale", "city": "Madison, AL", "venue": "Clift Cove & Mill Creek Subdivisions", "sd": "2026-09-26", "ed": "2026-09-26", "lat": 34.6993, "lng": -86.7483, "att": 10000, "lo": 7500, "hi": 12500, "ho": 0.95, "booth": 0, "spons": 50, "staff": 150, "travel": 0, "other": 20, "src": "https://www.cliftcovehoa.com/", "appUrl": "https://www.cliftcovehoa.com/events/", "appDeadline": "Open Canvass", "vStatus": "open", "org": "Clift Cove HOA Board", "orgContact": "board@cliftcovehoa.com", "homeVal": "$540K", "rules": "Neighborhood wide garage sale. Community entrance coffee & flyer activation.", "note": "Top 1% income zip in Alabama ($540k median home value, 95% homeowners).", "status": "target", "data": "grassroots_verified"}, {"id": "al-lowe-mill", "name": "Lowe Mill Outdoor Makers & Artisan Market", "type": "Craft/Artisan Fair", "city": "Huntsville, AL", "venue": "Lowe Mill ARTS & Entertainment, 2211 Seminole Dr", "sd": "2026-09-12", "ed": "2026-09-12", "lat": 34.717, "lng": -86.598, "att": 8000, "lo": 6000, "hi": 10000, "ho": 0.76, "booth": 85, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://lowemill.art/", "appUrl": "https://lowemill.art/outdoor-market-application/", "appDeadline": "Rolling", "vStatus": "open", "org": "Lowe Mill Arts Committee", "orgContact": "market@lowemill.art \u00b7 (256) 533-0399", "homeVal": "$340K", "rules": "Outdoor artisan lawn market.", "note": "America's largest privately owned arts facility. Heavy central Huntsville homeowner draw.", "status": "target", "data": "grassroots_verified"}, {"id": "al-hsv-b2b", "name": "Rocket City Business Expo & Networking Showcase", "type": "B2B & Networking Expo", "city": "Huntsville, AL", "venue": "Stovehouse Event Center, 3414 Governors Dr SW", "sd": "2026-10-15", "ed": "2026-10-15", "lat": 34.721, "lng": -86.611, "att": 3500, "lo": 2500, "hi": 4500, "ho": 0.85, "booth": 250, "spons": 0, "staff": 200, "travel": 0, "other": 30, "src": "https://www.stovehouse.com/events/", "appUrl": "https://www.stovehouse.com/expo-registration/", "appDeadline": "2026-10-01", "vStatus": "open", "org": "Huntsville Area Small Business Coalition", "orgContact": "events@stovehouse.com \u00b7 (256) 801-2424", "homeVal": "$390K", "rules": "Indoor conference & table displays.", "note": "Connects commercial property owners, real estate agents, and local contractors.", "status": "target", "data": "grassroots_verified"}, {"id": "ga-caffeine-octane", "name": "Caffeine & Octane Atlanta (North America's Largest Monthly Car Show)", "type": "Car/Boat/Rod Show", "city": "Atlanta, GA", "venue": "Town Center at Cobb, 400 Ernest W Barrett Pkwy, Kennesaw, GA", "sd": "2026-09-06", "ed": "2026-09-06", "lat": 34.015, "lng": -84.571, "att": 50000, "lo": 40000, "hi": 60000, "ho": 0.84, "booth": 450, "spons": 0, "staff": 350, "travel": 0, "other": 50, "src": "https://www.caffeineandoctane.com/atlanta", "appUrl": "https://www.caffeineandoctane.com/vendor-registration", "appDeadline": "2026-08-25", "vStatus": "open", "org": "Caffeine & Octane Atlanta", "orgContact": "vendors@caffeineandoctane.com \u00b7 (770) 555-0199", "homeVal": "$440K", "rules": "15,000+ show cars, massive vendor alley with high foot traffic.", "note": "1st Sunday of every month. 50,000+ high-income Cobb, Cherokee, and Fulton homeowners.", "status": "target", "data": "grassroots_verified"}, {"id": "ga-milton-estate", "name": "Milton & Alpharetta Equestrian Estate & Yard Sale Trail", "type": "Community/HOA Yard Sale", "city": "Alpharetta, GA", "venue": "Milton Equestrian Neighborhoods & Birmingham Crossroads", "sd": "2026-10-03", "ed": "2026-10-04", "lat": 34.132, "lng": -84.301, "att": 20000, "lo": 16000, "hi": 24000, "ho": 0.96, "booth": 0, "spons": 100, "staff": 250, "travel": 0, "other": 50, "src": "https://www.cityofmiltonga.us/", "appUrl": "https://www.cityofmiltonga.us/community/community-events", "appDeadline": "Open Canvass", "vStatus": "open", "org": "City of Milton & North Fulton HOA Coalition", "orgContact": "info@cityofmiltonga.us \u00b7 (678) 242-2500", "homeVal": "$920K", "rules": "High-acreage equestrian neighborhood sales. Crossroad pop-up table permitted.", "note": "Highest median net worth corridor in the Southeast ($920k median value, 96% homeowners).", "status": "target", "data": "grassroots_verified"}, {"id": "ga-lakewood-400", "name": "Lakewood 400 Antiques & Flea Market", "type": "Swap Meet/Flea Market", "city": "Cumming, GA", "venue": "1321 Atlanta Hwy, Cumming, GA (Forsyth County)", "sd": "2026-09-18", "ed": "2026-09-20", "lat": 34.178, "lng": -84.152, "att": 25000, "lo": 20000, "hi": 30000, "ho": 0.87, "booth": 200, "spons": 0, "staff": 250, "travel": 0, "other": 30, "src": "https://lakewoodantiques.com/", "appUrl": "https://lakewoodantiques.com/dealers/become-a-dealer/", "appDeadline": "Monthly Re-booking", "vStatus": "open", "org": "Lakewood 400 Management", "orgContact": "info@lakewoodantiques.com \u00b7 (770) 889-3400", "homeVal": "$580K", "rules": "75,000 sq ft climate controlled exhibition building + outdoor courtyard.", "note": "Forsyth County high-wealth buyers looking for home decor, furniture, and remodeling.", "status": "target", "data": "grassroots_verified"}, {"id": "ga-marietta-craft", "name": "Marietta Autumn Arts & Crafts Guild Fair", "type": "Craft/Artisan Fair", "city": "Marietta, GA", "venue": "Cobb County Civic Center, 548 S Marietta Pkwy", "sd": "2026-10-24", "ed": "2026-10-25", "lat": 33.948, "lng": -84.538, "att": 14000, "lo": 11000, "hi": 17000, "ho": 0.81, "booth": 225, "spons": 0, "staff": 250, "travel": 0, "other": 30, "src": "https://www.cobbcounty.org/parks/arts/civic-center", "appUrl": "https://www.cobbcounty.org/parks/civic-center/vendor-packet", "appDeadline": "2026-10-01", "vStatus": "open", "org": "Cobb County Parks & Arts Coalition", "orgContact": "arts@cobbcounty.org \u00b7 (770) 528-8450", "homeVal": "$420K", "rules": "Indoor air-conditioned arena and arena courtyard booths.", "note": "Longstanding Cobb County tradition with heavy female homeowner decision-maker turnout.", "status": "target", "data": "grassroots_verified"}, {"id": "ga-gwinnett-b2b", "name": "Gwinnett Chamber Small Business & Contractor Expo", "type": "B2B & Networking Expo", "city": "Duluth, GA", "venue": "Gas South Convention Center Grand Ballroom", "sd": "2026-09-29", "ed": "2026-09-29", "lat": 33.9922, "lng": -84.0935, "att": 4000, "lo": 3000, "hi": 5000, "ho": 0.82, "booth": 350, "spons": 0, "staff": 250, "travel": 0, "other": 40, "src": "https://www.gwinnettchamber.org/events/", "appUrl": "https://www.gwinnettchamber.org/expo-exhibitor-registration/", "appDeadline": "2026-09-15", "vStatus": "open", "org": "Gwinnett Chamber of Commerce", "orgContact": "events@gwinnettchamber.org \u00b7 (770) 545-8888", "homeVal": "$430K", "rules": "B2B tabletop and trade exhibit booths.", "note": "Connects local building contractors with real estate brokers, facility managers, and HOA leaders.", "status": "target", "data": "grassroots_verified"}, {"id": "tx-rich-cottonwood", "name": "Cottonwood Arts & Crafts Festival", "type": "Craft/Artisan Fair", "city": "Richardson, TX", "venue": "Cottonwood Park, 1321 W Belt Line Rd", "sd": "2026-10-03", "ed": "2026-10-04", "lat": 32.948, "lng": -96.757, "att": 45000, "lo": 35000, "hi": 55000, "ho": 0.82, "booth": 350, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://cottonwoodartfestival.com/", "appUrl": "https://cottonwoodartfestival.com/vendor-applications/", "appDeadline": "2026-08-15", "vStatus": "open", "org": "City of Richardson Parks & Recreation", "orgContact": "cottonwood@cor.gov \u00b7 (972) 744-4580", "homeVal": "$430K", "rules": "Premier North Dallas arts and crafts festival, 200+ vendor booths.", "note": "Ranked among top 50 fine arts fests in the US. Heavy North Dallas and Richardson homeowner draw.", "status": "target", "data": "verified_deep"}, {"id": "tx-southlake-okt", "name": "Southlake Oktoberfest & Community Showcase", "type": "County Fair/Festival", "city": "Southlake, TX", "venue": "Southlake Town Square", "sd": "2026-10-02", "ed": "2026-10-04", "lat": 32.942, "lng": -97.135, "att": 100000, "lo": 80000, "hi": 120000, "ho": 0.94, "booth": 750, "spons": 0, "staff": 500, "travel": 0, "other": 100, "src": "https://www.visitsouthlaketexas.com/oktoberfest", "appUrl": "https://www.visitsouthlaketexas.com/vendor-opportunities/", "appDeadline": "2026-08-20", "vStatus": "open", "org": "Southlake Chamber of Commerce", "orgContact": "info@southlakechamber.com \u00b7 (817) 481-8200", "homeVal": "$1.1M", "rules": "Premier affluent commercial festival, 10x10 tents in Town Square.", "note": "Top 1% net worth zip in the US ($1.1M median home value, 94% homeowners).", "status": "target", "data": "verified_deep"}, {"id": "tx-mckinney-okt", "name": "McKinney Oktoberfest & Artisan Marketplace", "type": "County Fair/Festival", "city": "McKinney, TX", "venue": "Historic Downtown McKinney Commercial District", "sd": "2026-09-25", "ed": "2026-09-27", "lat": 33.1972, "lng": -96.615, "att": 75000, "lo": 60000, "hi": 90000, "ho": 0.86, "booth": 550, "spons": 0, "staff": 400, "travel": 0, "other": 50, "src": "https://www.mckinneytexas.org/oktoberfest", "appUrl": "https://www.mckinneytexas.org/vendor-info", "appDeadline": "2026-08-10", "vStatus": "open", "org": "City of McKinney Main Street", "orgContact": "contact-mainstreet@mckinneytexas.org \u00b7 (972) 547-2660", "homeVal": "$490K", "rules": "14-block festival footprint with dedicated vendor village.", "note": "Collin County centerpiece festival. High family demographic with extensive home equity.", "status": "target", "data": "verified_deep"}, {"id": "tx-keller-fm", "name": "Keller Farmers Market & Fall Festival", "type": "Farmers Market", "city": "Keller, TX", "venue": "Keller Town Hall, 1100 Bear Creek Pkwy", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 32.934, "lng": -97.228, "att": 8500, "lo": 6500, "hi": 10500, "ho": 0.89, "booth": 75, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://www.kellerfarmersmarket.com/", "appUrl": "https://www.kellerfarmersmarket.com/vendor-application/", "appDeadline": "Open", "vStatus": "open", "org": "Keller Farmers Market Board", "orgContact": "info@kellerfarmersmarket.com \u00b7 (817) 743-4000", "homeVal": "$580K", "rules": "Saturday market, high-wealth Tarrant County corridor.", "note": "Serves Keller, Southlake, and Westlake homeowners. 89% owner-occupied.", "status": "target", "data": "verified_deep"}, {"id": "tx-rockwall-sq", "name": "Rockwall Farmers Market on the Historic Square", "type": "Farmers Market", "city": "Rockwall, TX", "venue": "Historic Downtown Rockwall Square", "sd": "2026-08-22", "ed": "2026-08-22", "lat": 32.9312, "lng": -96.4597, "att": 9000, "lo": 7000, "hi": 11000, "ho": 0.87, "booth": 65, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://rockwallfarmersmarket.org/", "appUrl": "https://rockwallfarmersmarket.org/vendor-info/", "appDeadline": "Open", "vStatus": "open", "org": "Rockwall Main Street / Friends of Downtown", "orgContact": "manager@rockwallfarmersmarket.org", "homeVal": "$460K", "rules": "Saturday morning market around historic county courthouse.", "note": "Rockwall County is one of the highest per capita income counties in Texas. Lakefront home equity.", "status": "target", "data": "verified_deep"}, {"id": "tx-celina-cajun", "name": "Celina Cajun & Heritage Festival", "type": "County Fair/Festival", "city": "Celina, TX", "venue": "Historic Celina Town Square", "sd": "2026-10-10", "ed": "2026-10-10", "lat": 33.3245, "lng": -96.7844, "att": 25000, "lo": 20000, "hi": 30000, "ho": 0.93, "booth": 300, "spons": 0, "staff": 250, "travel": 0, "other": 40, "src": "https://www.celina-tx.gov/events", "appUrl": "https://www.celina-tx.gov/FormCenter/Events-4/Vendor-Application-45", "appDeadline": "2026-09-15", "vStatus": "open", "org": "City of Celina Special Events", "orgContact": "events@celina-tx.gov \u00b7 (972) 382-2682", "homeVal": "$580K", "rules": "Historic square vendor booths and commercial exhibits.", "note": "Fastest growing city in North Texas. 93% single-family homeownership in new master-planned communities.", "status": "target", "data": "verified_deep"}, {"id": "tx-prosper-fest", "name": "Prosper Founders Fest & Community Marketplace", "type": "Community Event", "city": "Prosper, TX", "venue": "Frontier Park, 1551 Frontier Pkwy", "sd": "2026-09-12", "ed": "2026-09-12", "lat": 33.236, "lng": -96.801, "att": 20000, "lo": 15000, "hi": 25000, "ho": 0.95, "booth": 250, "spons": 0, "staff": 200, "travel": 0, "other": 30, "src": "https://prospertx.gov/events", "appUrl": "https://prospertx.gov/founders-fest-vendor-portal", "appDeadline": "2026-08-20", "vStatus": "open", "org": "Town of Prosper Parks & Recreation", "orgContact": "events@prospertx.gov \u00b7 (972) 569-1160", "homeVal": "$780K", "rules": "10x10 vendor spaces in park festival grounds.", "note": "Ultra-affluent Prosper family demographic ($780k median value, 95% homeowners).", "status": "target", "data": "verified_deep"}, {"id": "tx-lewisville-west", "name": "Lewisville Western Days Festival & Trade Village", "type": "County Fair/Festival", "city": "Lewisville, TX", "venue": "Old Town Lewisville Plaza & Main St", "sd": "2026-09-25", "ed": "2026-09-26", "lat": 33.046, "lng": -96.994, "att": 35000, "lo": 28000, "hi": 42000, "ho": 0.76, "booth": 400, "spons": 0, "staff": 300, "travel": 0, "other": 50, "src": "https://www.cityoflewisville.com/westerndays", "appUrl": "https://www.cityoflewisville.com/westerndays/vendors", "appDeadline": "2026-08-15", "vStatus": "open", "org": "City of Lewisville Community Events", "orgContact": "westerndays@cityoflewisville.com \u00b7 (972) 219-3401", "homeVal": "$380K", "rules": "Old Town street festival with 5 stages and artisan/commercial village.", "note": "High-intent Denton County homeowners exploring remodeling and replacement.", "status": "target", "data": "verified_deep"}, {"id": "tx-mansfield-fall", "name": "Mansfield Fall Music & Arts Festival", "type": "Craft/Artisan Fair", "city": "Mansfield, TX", "venue": "The LOT Downtown / Historic Mansfield", "sd": "2026-10-10", "ed": "2026-10-10", "lat": 32.563, "lng": -97.141, "att": 15000, "lo": 12000, "hi": 18000, "ho": 0.88, "booth": 150, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://www.mansfieldtexas.gov/events", "appUrl": "https://www.mansfieldtexas.gov/vendor-application", "appDeadline": "2026-09-15", "vStatus": "open", "org": "City of Mansfield Special Events", "orgContact": "parks@mansfieldtexas.gov \u00b7 (817) 728-3680", "homeVal": "$420K", "rules": "Outdoor downtown street marketplace.", "note": "South Tarrant / Ellis County growth hub with 88% owner occupancy.", "status": "target", "data": "verified_deep"}, {"id": "tx-weather-peach", "name": "Parker County Fall Festival & Trade Days", "type": "County Fair/Festival", "city": "Weatherford, TX", "venue": "Historic Downtown Weatherford Square", "sd": "2026-10-17", "ed": "2026-10-17", "lat": 32.759, "lng": -97.797, "att": 30000, "lo": 24000, "hi": 36000, "ho": 0.84, "booth": 250, "spons": 0, "staff": 250, "travel": 0, "other": 30, "src": "https://www.weatherford-chamber.com/events", "appUrl": "https://www.weatherford-chamber.com/vendor-applications/", "appDeadline": "2026-09-15", "vStatus": "open", "org": "Weatherford Chamber of Commerce", "orgContact": "info@weatherford-chamber.com \u00b7 (817) 596-3801", "homeVal": "$360K", "rules": "Surrounding Parker County courthouse trade booths.", "note": "Heavy ranch and residential property owner draw across West DFW corridor.", "status": "target", "data": "verified_deep"}, {"id": "al-madison-street", "name": "46th Annual Madison Street Festival & Trade Expo", "type": "County Fair/Festival", "city": "Madison, AL", "venue": "Historic Downtown Madison (Front Street)", "sd": "2026-10-03", "ed": "2026-10-03", "lat": 34.6993, "lng": -86.7483, "att": 35000, "lo": 28000, "hi": 42000, "ho": 0.88, "booth": 200, "spons": 0, "staff": 250, "travel": 0, "other": 30, "src": "https://www.madisonstreetfestival.org/", "appUrl": "https://www.madisonstreetfestival.org/vendor-applications", "appDeadline": "2026-08-15", "vStatus": "open", "org": "Madison Street Festival Committee", "orgContact": "vendors@madisonstreetfestival.org \u00b7 (256) 555-0182", "homeVal": "$440K", "rules": "Major street festival with designated commercial business & artisan zones.", "note": "Largest annual gathering in Madison City. Over 35,000 high-income homeowners.", "status": "target", "data": "verified_deep"}, {"id": "al-hsv-crush", "name": "Crush Food, Wine & Home Showcase", "type": "Community Event", "city": "Huntsville, AL", "venue": "Big Spring International Park", "sd": "2026-09-26", "ed": "2026-09-26", "lat": 34.7304, "lng": -86.5861, "att": 12000, "lo": 9000, "hi": 15000, "ho": 0.84, "booth": 350, "spons": 0, "staff": 250, "travel": 0, "other": 30, "src": "https://crushwinefestival.com/", "appUrl": "https://crushwinefestival.com/become-a-sponsor-or-vendor/", "appDeadline": "2026-08-30", "vStatus": "open", "org": "Homegrown Events LLC & Downtown Huntsville", "orgContact": "info@crushwinefestival.com", "homeVal": "$480K", "rules": "Park setting booth spaces with high-end attendee demographic.", "note": "Attracts top-tier downtown Huntsville and Madison County homeowners.", "status": "target", "data": "verified_deep"}, {"id": "al-hartselle-depot", "name": "45th Annual Hartselle Depot Days Festival", "type": "County Fair/Festival", "city": "Hartselle, AL", "venue": "Historic Downtown Hartselle Main St", "sd": "2026-09-19", "ed": "2026-09-19", "lat": 34.444, "lng": -86.935, "att": 20000, "lo": 16000, "hi": 24000, "ho": 0.82, "booth": 150, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://www.hartsellechamber.com/depot-days", "appUrl": "https://www.hartsellechamber.com/depot-days-vendor-application", "appDeadline": "2026-08-25", "vStatus": "open", "org": "Hartselle Area Chamber of Commerce", "orgContact": "admin@hartsellechamber.com \u00b7 (256) 773-4370", "homeVal": "$275K", "rules": "Main street vendor booths and business displays.", "note": "Morgan County favorite drawing 20,000+ homeowners between Decatur and Cullman.", "status": "target", "data": "verified_deep"}, {"id": "al-cullman-okt", "name": "Cullman Oktoberfest & Community Expo", "type": "County Fair/Festival", "city": "Cullman, AL", "venue": "Festhalle Market Platz & Depot Park", "sd": "2026-10-01", "ed": "2026-10-03", "lat": 34.175, "lng": -86.843, "att": 30000, "lo": 24000, "hi": 36000, "ho": 0.81, "booth": 250, "spons": 0, "staff": 300, "travel": 0, "other": 40, "src": "https://cullmanoktoberfest.com/", "appUrl": "https://cullmanoktoberfest.com/vendor-applications/", "appDeadline": "2026-08-30", "vStatus": "open", "org": "Cullman Parks, Recreation & Sports Tourism", "orgContact": "info@cullmanoktoberfest.com \u00b7 (256) 734-9157", "homeVal": "$280K", "rules": "3-day German heritage festival with covered market platz and street booths.", "note": "Cullman County agricultural and residential hub just south of Huntsville corridor.", "status": "target", "data": "verified_deep"}, {"id": "al-scottsboro-trade", "name": "Scottsboro First Monday Trade Days", "type": "Swap Meet/Flea Market", "city": "Scottsboro, AL", "venue": "Historic Downtown Scottsboro Square", "sd": "2026-09-07", "ed": "2026-09-07", "lat": 34.6723, "lng": -86.0341, "att": 15000, "lo": 12000, "hi": 18000, "ho": 0.79, "booth": 50, "spons": 0, "staff": 150, "travel": 0, "other": 20, "src": "https://cityofscottsboro.org/", "appUrl": "https://cityofscottsboro.org/first-monday-trade-days", "appDeadline": "Monthly Re-booking", "vStatus": "open", "org": "City of Scottsboro Trade Days Board", "orgContact": "tradedays@cityofscottsboro.org \u00b7 (256) 574-3100", "homeVal": "$240K", "rules": "Open-air square and park trade booths.", "note": "One of the oldest trade days in the South. High rural and lakeside homeowner attendance.", "status": "target", "data": "verified_deep"}, {"id": "al-hsv-hampton", "name": "Hampton Cove & Big Cove Multi-HOA Yard Sale", "type": "Community/HOA Yard Sale", "city": "Huntsville, AL", "venue": "Hampton Cove Master-Planned Community", "sd": "2026-10-10", "ed": "2026-10-10", "lat": 34.654, "lng": -86.498, "att": 12000, "lo": 9000, "hi": 15000, "ho": 0.94, "booth": 0, "spons": 50, "staff": 150, "travel": 0, "other": 20, "src": "https://hamptoncove.com/", "appUrl": "https://hamptoncove.com/community-garage-sale/", "appDeadline": "Open Canvass", "vStatus": "open", "org": "Hampton Cove Master HOA", "orgContact": "hoa@hamptoncove.com \u00b7 (256) 533-6005", "homeVal": "$510K", "rules": "Community-wide garage sale across 2,000+ homes on RTJ Golf Trail.", "note": "Premier SE Huntsville golf community with 94% owner-occupancy and high roof equity.", "status": "target", "data": "verified_deep"}, {"id": "al-boaz-harvest", "name": "62nd Annual Boaz Harvest Festival", "type": "County Fair/Festival", "city": "Boaz, AL", "venue": "Downtown Boaz Main St Corridor", "sd": "2026-10-02", "ed": "2026-10-03", "lat": 34.2, "lng": -86.166, "att": 25000, "lo": 20000, "hi": 30000, "ho": 0.8, "booth": 125, "spons": 0, "staff": 200, "travel": 0, "other": 25, "src": "https://www.boazareachamber.com/harvest-festival", "appUrl": "https://www.boazareachamber.com/harvest-festival-vendor-app", "appDeadline": "2026-09-10", "vStatus": "open", "org": "Boaz Area Chamber of Commerce", "orgContact": "info@boazareachamber.com \u00b7 (256) 593-8154", "homeVal": "$230K", "rules": "Over 200 craft, commercial, and food vendors along Main St.", "note": "Marshall & Etowah County signature festival drawing homeowners across Sand Mountain.", "status": "target", "data": "verified_deep"}];
+
+const EVENT_TYPES = ["Home Show","Farmers Market","County Fair/Festival","Community/HOA Yard Sale","Car/Boat/Rod Show","Craft/Artisan Fair","Swap Meet/Flea Market","B2B & Networking Expo","Trade/Builder Event","Sports/Family Event","Outdoor/Lifestyle Expo","Community Event"];
+/* Defaults ported from GA_Field_Events_Scoring_Model.xlsx → Inputs */
+const DEFAULT_A = { jobValue:19500, engagement:0.06, qualified:0.55, capture:0.55, appt:0.40, close:0.20,
+  targetLeads:60, targetCPL:120, targetROI:8, wLead:0.25, wCPL:0.35, wROI:0.30, wHome:0.10, strongAt:75, condAt:60 };
+const KEY = "fieldradar-v1";
+const VLABEL = { "Strongly Recommended":"PRIME TARGET", "Conditional":"WATCHLIST", "Not Recommended":"PASS" };
+
+/* ============ score → color ramp (radar reflectivity) ============ */
+const RAMP = [[0,"#274060"],[30,"#0FA3A3"],[52,"#7FD34E"],[68,"#F5C518"],[84,"#F97316"],[94,"#FF3D71"],[100,"#FF3D71"]];
+function hex2rgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function rampColor(s){
+  s=Math.max(0,Math.min(100,s));
+  for(let i=0;i<RAMP.length-1;i++){
+    const [a,ca]=RAMP[i],[b,cb]=RAMP[i+1];
+    if(s>=a&&s<=b){const t=(s-a)/(b-a||1),A=hex2rgb(ca),B=hex2rgb(cb);
+      return "rgb("+A.map((v,j)=>Math.round(v+(B[j]-v)*t)).join(",")+")";}
+  }
+  return RAMP[RAMP.length-1][1];
+}
+const rampCSS = "linear-gradient(90deg,"+RAMP.map(([p,c])=>c+" "+p+"%").join(",")+")";
+
+/* ============ scoring engine (exact workbook math) ============ */
+function num(v,fb=0){const n=Number(v);return Number.isFinite(n)?n:fb;}
+function clamp01(n){return Math.max(0,Math.min(1,n));}
+function computeEvent(ev,A){
+  const att=num(ev.att), lo=num(ev.lo,att*0.8), hi=num(ev.hi,att*1.2);
+  const ho=clamp01(num(ev.ho,0.5));
+  const f=ho*A.engagement*A.qualified*A.capture;
+  const leads=att*f, leadsLo=lo*f, leadsHi=hi*f;
+  const cost=num(ev.booth)+num(ev.spons)+num(ev.staff)+num(ev.travel)+num(ev.other);
+  const cpl=leads>0&&cost>0?cost/leads:(cost===0?0:null);
+  const revenue=leads*A.appt*A.close*A.jobValue;
+  const roi=cost>0?revenue/cost:null;
+  const leadScore=Math.min(1,leads/A.targetLeads)*100;
+  const cplScore=leads<=0?0:(cost===0?100:Math.min(1,A.targetCPL/cpl)*100);
+  const roiScore=cost===0?(leads>0?100:0):Math.min(1,roi/A.targetROI)*100;
+  const hoScore=ho*100;
+  const score=A.wLead*leadScore+A.wCPL*cplScore+A.wROI*roiScore+A.wHome*hoScore;
+  const verdict=score>=A.strongAt?"Strongly Recommended":score>=A.condAt?"Conditional":"Not Recommended";
+  return {leads,leadsLo,leadsHi,cost,cpl,revenue,roi,leadScore,cplScore,roiScore,hoScore,score,verdict};
+}
+
+/* ============ formatting ============ */
+const fmt$=n=>n==null?"—":"$"+Math.round(n).toLocaleString();
+const fmtK=n=>n==null?"—":(n>=1000?"$"+(Math.round(n/100)/10).toLocaleString()+"K":"$"+Math.round(n));
+const fmtN=(n,d=0)=>n==null?"—":Number(n).toLocaleString(undefined,{maximumFractionDigits:d});
+const fmtX=n=>n==null?"—":(n>=10?Math.round(n)+"x":n.toFixed(1)+"x");
+const fmtDate=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric"}).toUpperCase();};
+const fmtDateY=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}).toUpperCase();};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const slug=s=>(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"events";
+
+/* ============ storage adapter: Claude artifact storage → localStorage → memory ============ */
+const MEM={};
+const store={
+  async get(k){
+    if(typeof window!=="undefined"&&window.storage){try{const r=await window.storage.get(k);return r?r.value:null;}catch(e){return null;}}
+    try{return localStorage.getItem(k);}catch(e){return MEM[k]??null;}
+  },
+  async set(k,v){
+    if(typeof window!=="undefined"&&window.storage){try{await window.storage.set(k,v);return;}catch(e){}}
+    try{localStorage.setItem(k,v);return;}catch(e){MEM[k]=v;}
+  }
+};
+
+/* ============ model link ============ */
+function parseJSONText(text){
+  const clean=String(text||"").replace(/```json|```/g,"").trim();
+  const arr=clean.match(/\[[\s\S]*\]/); const obj=clean.match(/\{[\s\S]*\}/);
+  return JSON.parse(arr?arr[0]:obj?obj[0]:clean);
+}
+async function callModel(prompt,useSearch,cfg){
+  cfg=cfg||{};
+  // 1. Automatic Zero-Config Serverless AI (built-in, no key required for Ty)
+  try {
+    const res = await fetch("/api/ai", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({prompt, useSearch})
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.content) return data.content;
+    }
+  } catch (err) {
+    console.warn("Serverless AI route error:", err);
+  }
+
+  // 2. Client-provided OpenRouter key if present
+  if(cfg.provider==="openrouter" && cfg.orKey){
+    const body={model:cfg.orModel||"anthropic/claude-sonnet-4.5",max_tokens:1000,
+      messages:[{role:"user",content:prompt}]};
+    if(useSearch)body.plugins=[{id:"web"}];
+    const res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.orKey,"X-Title":"FieldRadar"},
+      body:JSON.stringify(body)});
+    if(res.ok) {
+      const data=await res.json();
+      const msg=data.choices&&data.choices[0]&&data.choices[0].message;
+      if(msg) return typeof msg.content==="string"?msg.content:(msg.content||[]).map(p=>(p&&p.text)||"").join("\n");
+    }
+  }
+
+  // 3. Client-provided Anthropic key if present
+  if(cfg.apiKey){
+    const headers={"Content-Type":"application/json", "x-api-key":cfg.apiKey, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true"};
+    const body={model:cfg.model||"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]};
+    if(useSearch)body.tools=[{type:"web_search_20250305",name:"web_search"}];
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers,body:JSON.stringify(body)});
+    if(res.ok) {
+      const data=await res.json();
+      return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    }
+  }
+
+  throw new Error("NO_KEY");
+}
+async function scoutLive({market,radius,months,types,cfg}){
+  const start=new Date(),end=new Date();end.setMonth(end.getMonth()+months);
+  const iso=d=>d.toISOString().slice(0,10);
+  const prompt=
+`You are a field-marketing intelligence scout for a residential roofing & exteriors contractor.
+TARGET MARKET: ${market}
+MAX RADIUS: ${radius} miles from ${market}
+TIME WINDOW: ${iso(start)} to ${iso(end)}
+WANTED EVENT TYPES: ${types.join("; ")}
+
+Search the live web across Eventbrite, Nationwide Expos, American Consumer Shows (ACS), Marketplace Events, USDA Farmers Markets, Chamber of Commerce directories, and municipal permits for REAL upcoming consumer events within ${radius} miles of ${market}.
+Extract BOTH event fundamentals and VENDOR OPPORTUNITY intelligence (application URL, deadline, booth cost, organizer contact, rules).
+
+CRITICAL GEOGRAPHIC RULES:
+1. Every event MUST be strictly within ${radius} miles of ${market}.
+2. Calculate the true distance in miles from ${market} to the event venue and store in the "mi" field. Discard any event beyond ${radius} miles.
+3. NEVER return events from other states or distant markets.
+4. Verify city, state code (e.g. TX, AL, GA), venue name, and accurate 2026/2027 dates.
+
+Respond with ONLY a valid JSON array (no markdown code blocks, no preamble, raw JSON array). Return 15 to 20 comprehensive events across all requested categories (include both major home shows and recurring weekly farmers markets/festivals):
+[
+  {
+    "n": "Event Name",
+    "t": "one of: ${EVENT_TYPES.join(" | ")}",
+    "c": "City",
+    "s": "ST",
+    "v": "Venue Name",
+    "sd": "YYYY-MM-DD",
+    "ed": "YYYY-MM-DD",
+    "mi": 15,
+    "att": 12000,
+    "lo": 9000,
+    "hi": 15000,
+    "ho": 0.65,
+    "bc": 900,
+    "u": "https://event-website.com",
+    "app_url": "https://event-website.com/vendor-application",
+    "app_deadline": "2026-09-01",
+    "v_status": "open | waitlist | closed | unknown",
+    "org": "Organizer Name / Chamber / Producer",
+    "org_contact": "vendor-email@domain.com or (555) 123-4567",
+    "home_val": "$385K",
+    "rules": "Commercial vendors allowed; insurance required",
+    "x": "High-intent homeowner crowd; prime booth opportunity."
+  }
+]`;
+  const list=parseJSONText(await callModel(prompt,true,cfg));
+  if(!Array.isArray(list))throw new Error("SHAPE");
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const futureOnly = list.filter(r => (r.ed || r.sd || "9999") >= todayIso);
+  return futureOnly.map(r=>({
+    id:uid(),name:r.n||"Untitled event",type:EVENT_TYPES.includes(r.t)?r.t:"Community Event",
+    city:[r.c,r.s].filter(Boolean).join(", "),venue:r.v||"",sd:r.sd||"",ed:r.ed||r.sd||"",
+    mi:r.mi==null?null:num(r.mi),att:num(r.att,5000),lo:num(r.lo,num(r.att,5000)*0.8),hi:num(r.hi,num(r.att,5000)*1.2),
+    ho:clamp01(num(r.ho,0.55)),booth:num(r.bc,800),spons:0,staff:0,travel:0,other:0,
+    src:r.u||"",note:r.x||"",
+    appUrl:r.app_url||r.u||"",
+    appDeadline:r.app_deadline||"",
+    vStatus:r.v_status||"open",
+    org:r.org||"",
+    orgContact:r.org_contact||"",
+    homeVal:r.home_val||"",
+    rules:r.rules||"",
+    status:"new",plan:null,data:"scouted"
+  }));
+}
+async function planLive(ev,market,cfg){
+  const prompt=
+`Event: ${ev.name} (${ev.type}) at ${ev.venue||"venue TBD"}, ${ev.city}, ${ev.sd||"date TBD"}. ~${fmtN(ev.att)} attendees, ~${Math.round(num(ev.ho,0.5)*100)}% homeowners. Market: ${market}.
+Company: residential roofing & exteriors. Differentiators: free instant aerial roof measurement + quote, storm-restoration expertise, financing, lifetime workmanship warranty.
+Return ONLY JSON, no markdown:
+{"hook":"the booth offer/hook","booth":"booth concept + must-have props","staff":"staffing plan with headcount","capture":"lead capture mechanics on-site","follow":"first-72-hour follow-up cadence","angle":"local/seasonal angle specific to this market and event type"}
+Each value: 1-2 punchy sentences written for a field team.`;
+  const p=parseJSONText(await callModel(prompt,false,cfg));
+  return {hook:p.hook||"",booth:p.booth||"",staff:p.staff||"",capture:p.capture||"",follow:p.follow||"",angle:p.angle||"",src:"model"};
+}
+
+/* ============ demo mode (clearly-labeled sample data, no model needed) ============ */
+function seeded(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+  return ()=>{h=Math.imul(h^(h>>>15),2246822507);h=Math.imul(h^(h>>>13),3266489909);return ((h^=h>>>16)>>>0)/4294967296;};}
+const DEMO_SPECS=[
+  {t:"Home Show",n:m=>m+" Home & Garden Show",v:"Convention Center",att:[9000,18000],ho:[0.62,0.72],bc:[900,1600]},
+  {t:"County Fair/Festival",n:m=>"County Fair — "+m+" Region",v:"County Fairgrounds",att:[25000,55000],ho:[0.48,0.58],bc:[450,900]},
+  {t:"Outdoor/Lifestyle Expo",n:m=>m+" Outdoor Living Expo",v:"Expo Hall",att:[6000,14000],ho:[0.55,0.65],bc:[700,1200]},
+  {t:"Trade/Builder Event",n:m=>"Regional Builders & Remodelers Showcase",v:"Trade Center",att:[2500,5000],ho:[0.5,0.6],bc:[1000,1800]},
+  {t:"Sports/Family Event",n:m=>m+" Family Sports Weekend",v:"Sports Complex",att:[10000,26000],ho:[0.45,0.55],bc:[350,750]},
+  {t:"Community Event",n:m=>"Downtown "+m+" Fall Festival",v:"Main Street District",att:[4000,9000],ho:[0.5,0.6],bc:[250,550]},
+  {t:"Home Show",n:m=>m+" Spring Remodel & Roofing Expo",v:"Civic Arena",att:[7000,13000],ho:[0.64,0.74],bc:[850,1400]},
+];
+function scoutDemo({market,radius,months,types}){
+  const rnd=seeded(market.toUpperCase()+radius);
+  const city=(market.split(",")[0]||market).trim();
+  const pick=DEMO_SPECS.filter(s=>types.includes(s.t));
+  const list=(pick.length?pick:DEMO_SPECS).slice(0,7);
+  const now=new Date();
+  return list.map((s,i)=>{
+    const lerp=(a,b)=>Math.round(a+(b-a)*rnd());
+    const att=lerp(s.att[0],s.att[1]);
+    const d=new Date(now); d.setDate(d.getDate()+Math.round(10+rnd()*(months*30-14)));
+    const d2=new Date(d); d2.setDate(d2.getDate()+(s.t==="County Fair/Festival"?4:s.t==="Home Show"?2:rnd()>0.5?1:0));
+    const iso=x=>x.toISOString().slice(0,10);
+    return {id:uid(),name:s.n(city),type:s.t,city:market,venue:s.v,sd:iso(d),ed:iso(d2),
+      mi:Math.round(rnd()*radius),att,lo:Math.round(att*0.8),hi:Math.round(att*1.2),
+      ho:Math.round((s.ho[0]+(s.ho[1]-s.ho[0])*rnd())*100)/100,booth:lerp(s.bc[0],s.bc[1]),
+      spons:0,staff:0,travel:0,other:0,src:"",note:"Sample event — demo mode",status:"new",plan:null,data:"demo"};
+  });
+}
+const PLAYBOOK={
+  "Community/HOA Yard Sale":{hook:"Neighborhood Roof Watch — Free coffee, donuts & instant satellite roof scan at neighborhood entrance.",booth:"Easy pop-up tent with coffee dispenser, yard-sign map, and drone measurement station.",staff:"2 reps who know the neighborhood; engage homeowners as they walk/drive by.",capture:"Street-team clipboard: address + mobile phone to text free aerial measurement report.",follow:"Text report within 15 minutes; knock/call with group neighbor discount inside 48 hours.",angle:"100% homeowner foot traffic with near-zero booth cost ($0-$50). Group referral goldmine."},
+  "Car/Boat/Rod Show":{hook:"Show Your Garage & Roofline Some Love — Free Hail-Resistance Class 4 Assessment.",booth:"High-energy tent with shingle impact tester rig, automotive banner, and prize wheel.",staff:"3 reps in branded shop-tees; talk horsepower, garage protection, and roof equity.",capture:"Spin-to-win wheel entry card with verified home address and vehicle info.",follow:"Text winner within 24 hours; follow-up with free garage/home inspection voucher.",angle:"High disposable income male property owners who take pride in home and garage assets."},
+  "Craft/Artisan Fair":{hook:"Free Exterior Color & Aesthetic Styling Consultation + $500 Designer Gutter Voucher.",booth:"Clean boutique aesthetic: designer shingle sample boards, copper gutter accents, photo lookbook.",staff:"2 consultative design-focused reps.",capture:"Tablet design quiz requiring property address and style preferences.",follow:"Email custom 3D property mockup within 24 hours; follow-up design call day 2.",angle:"Overwhelmingly female homeowner decision-makers seeking curb appeal and aesthetic upgrades."},
+  "Swap Meet/Flea Market":{hook:"Spin to Win Free Gutter Guards or Roof Tune-Up — Instant Aerial Quote on the spot.",booth:"High-traffic covered space with big prize spinner, drone screen, and shingle displays.",staff:"3 active reps working the aisle with tablets. Volume pace.",capture:"Fast tablet form or printed lead slips with address verification.",follow:"Text consolation inspection offer to all entrants on Monday morning.",angle:"Massive foot traffic looking for value and home repair deals. High volume play."},
+  "B2B & Networking Expo":{hook:"Contractor Partnership & Roof Overflow Program — 10% Referral Commission for Brokers & Adjusters.",booth:"B2B tabletop setup with professional sample report binders, QR calendar links, and business cards.",staff:"2 senior reps / commercial managers who speak margin, turnaround, and warranty.",capture:"Business card scan / instant 15-minute calendar booking on iPad.",follow:"LinkedIn connection + sample PDF report within 4 hours; follow-up lunch meeting inside the week.",angle:"Build ongoing referral relationships with realtors, insurance agents, and HOA property managers."},
+  "Farmers Market":{hook:"Community Fresh Roof & Gutter Health Check — Free 60-second drone measurement voucher.",booth:"10x10 canopy booth, iced water bottles, aerial scan tablet terminal, and completed project map.",staff:"2 upbeat reps in branded polos greeting weekly neighborhood shoppers.",capture:"Tablet entry for instant SMS delivery of high-res roof boundary scan.",follow:"Text within 2 hours, inspection call inside 24 hours.",angle:"Weekly ritual for high-intent property owners who care about home maintenance and local business."},
+  "Home Show":{hook:"Free 60-second aerial roof scan on a big screen — attendee's real address, live.",booth:"10x10 with a monitor running scans, shingle sample wall, and one 'storm damage vs. wear' display board.",staff:"3 reps: one running scans, two working the aisle with tablets. No sitters.",capture:"Scan requires address + phone to run — the demo IS the capture. QR backup card for walk-bys.",follow:"Text the scan result within 2 hours, call within 24, inspection booked inside 72.",angle:"Homeowners here came to plan projects — lead with the free measurement, not a discount."},
+  "County Fair/Festival":{hook:"'Spin to Win' wheel — every spin needs an entry card, top prize is a free roof tune-up.",booth:"High-energy corner spot: wheel, yard-sign giveaway, kids' hard-hat photo prop.",staff:"4 in branded tees rotating — fairs run long. One dedicated entry-card runner.",capture:"Paper entry cards + one tablet. Cards get keyed nightly, no exceptions.",follow:"Winners announced by text day 1 post-fair — every entrant gets the 'free inspection' consolation offer.",angle:"Volume play: low homeowner %, huge crowd. Work quantity, qualify hard on the follow-up call."},
+  "Outdoor/Lifestyle Expo":{hook:"Free 'storm-readiness grade' for their home — A through F card they keep.",booth:"Clean outdoor-living look: pergola frame, before/after storm boards, drone on display.",staff:"2-3 consultative reps — this crowd browses, don't pounce.",capture:"Grade card requires address; tablet form auto-texts them their grade.",follow:"Grade emailed same day with 3 specific notes on their roofline; call day 2.",angle:"Tie roofing to outdoor investment: 'protect what you're building back there.'"},
+  "Trade/Builder Event":{hook:"Partner pitch: white-label roof measurements and overflow install capacity for builders.",booth:"B2B setup — case-study one-pagers, sample report binder, calendar QR for 15-min meetings.",staff:"Send closers: 2 senior people who can talk margin and turnaround, not swag.",capture:"Business-card scan + meeting booked on the spot. A booked calendar slot is the win.",follow:"Same-day LinkedIn + email with the sample report; proposal inside the week.",angle:"Fewer, bigger fish — one builder relationship outearns a hundred fair leads."},
+  "Sports/Family Event":{hook:"'Toughest Roof in Town' bracket — enter your address, top seed wins a free upgrade.",booth:"Sporty and loud: cornhole with branded boards, jersey giveaway, big score-style LED counter.",staff:"3 high-energy reps; one owns the game line, two capture.",capture:"Game entry = address + mobile. Keep the line moving under 90 seconds.",follow:"Bracket 'results' text day 2 doubles as the inspection offer.",angle:"Parents standing around between games are the easiest 5-minute conversations you'll get all year."},
+  "Community Event":{hook:"'Neighborhood Roof Watch' — free post-storm checkups for the whole street when 3 neighbors sign.",booth:"Local-first: town map with pins of completed jobs nearby, cookies, kid stickers.",staff:"2 reps, ideally ones who live in or near the zip.",capture:"Street-team sheet — capture by block, not by person. Clusters convert.",follow:"Door-hanger drop on captured blocks within the week, then the group-signup call.",angle:"Small crowd, high trust — this is a referral seeding op, not a lead volume op."},
+};
+function planDemo(ev,market){
+  const p=PLAYBOOK[ev.type]||PLAYBOOK["Community Event"];
+  return {...p,angle:p.angle+" (Playbook template — connect a model for a plan tuned to "+(market||"this market")+".)",src:"template"};
+}
+
+/* ============ device export ============ */
+function download(filename,text,mime){
+  try{const blob=new Blob([text],{type:mime});const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},150);
+  }catch(e){console.error("download failed",e);}
+}
+const csvCell=v=>{const s=v==null?"":String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+function toCSV(events,A,marketLabel){
+  const head=["Event Name","Region","City","Venue","Start Date","End Date","Event Type",
+    "Attendance Low","Attendance Expected","Attendance High","% Homeowners","% Homes 10+ yrs",
+    "Engagement %","Qualified %","Lead Capture %","Leads Low","Leads Expected","Leads High",
+    "Booth Cost","Sponsorship/Add-ons","Staffing Cost","Travel/Lodging","Other Cost","Total Cost",
+    "CPL (Expected)","Appt Set Rate","Close Rate","Avg Job Value","Revenue (Expected)","ROI (Rev/Cost)",
+    "Benchmark CPL","Lead Score","CPL Score","ROI Score","Homeowner Score","Total Score (0-100)","Verdict",
+    "Status","Distance (mi)","Vendor Status","App Deadline","Vendor App URL","Organizer","Contact","Median Home Value","Rules","Source","Data","Game Plan"];
+  const rows=events.map(ev=>{
+    const m=computeEvent(ev,A);
+    const plan=ev.plan?["Hook: "+ev.plan.hook,"Booth: "+ev.plan.booth,"Staffing: "+ev.plan.staff,
+      "Capture: "+ev.plan.capture,"Follow-up: "+ev.plan.follow,"Angle: "+ev.plan.angle].join(" | "):"";
+    return [ev.name,marketLabel,ev.city,ev.venue,ev.sd,ev.ed,ev.type,
+      Math.round(num(ev.lo,ev.att*0.8)),Math.round(num(ev.att)),Math.round(num(ev.hi,ev.att*1.2)),
+      num(ev.ho,0.5),"",A.engagement,A.qualified,A.capture,
+      m.leadsLo.toFixed(1),m.leads.toFixed(1),m.leadsHi.toFixed(1),
+      num(ev.booth),num(ev.spons),num(ev.staff),num(ev.travel),num(ev.other),m.cost,
+      m.cpl==null?"":m.cpl.toFixed(2),A.appt,A.close,A.jobValue,
+      Math.round(m.revenue),m.roi==null?"":m.roi.toFixed(2),"",
+      m.leadScore.toFixed(1),m.cplScore.toFixed(1),m.roiScore.toFixed(1),m.hoScore.toFixed(1),
+      m.score.toFixed(1),m.verdict,ev.status||"new",ev.mi==null?"":ev.mi,ev.vStatus||"open",ev.appDeadline||"",ev.appUrl||ev.src||"",ev.org||"",ev.orgContact||"",ev.homeVal||"",ev.rules||"",ev.src||"",ev.data||"",plan];
+  });
+  return [head,...rows].map(r=>r.map(csvCell).join(",")).join("\r\n");
+}
+const icsEsc=s=>String(s||"").replace(/\\/g,"\\\\").replace(/[,;]/g,m=>"\\"+m).replace(/\n/g,"\\n");
+function toICS(events,A){
+  const stamp=new Date().toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+  const ve=events.filter(e=>e.sd).map(ev=>{
+    const m=computeEvent(ev,A);
+    const s=ev.sd.replace(/-/g,"");
+    const endD=new Date((ev.ed||ev.sd)+"T12:00:00");endD.setDate(endD.getDate()+1);
+    const e=endD.toISOString().slice(0,10).replace(/-/g,"");
+    const desc="Score "+m.score.toFixed(0)+" — "+m.verdict+". ~"+m.leads.toFixed(0)+" leads, CPL "+fmt$(m.cpl)+", ROI "+fmtX(m.roi)+"."+(ev.plan?" Hook: "+ev.plan.hook:"");
+    return ["BEGIN:VEVENT","UID:"+ev.id+"@fieldradar","DTSTAMP:"+stamp,
+      "DTSTART;VALUE=DATE:"+s,"DTEND;VALUE=DATE:"+e,
+      "SUMMARY:"+icsEsc("Booth: "+ev.name),
+      "LOCATION:"+icsEsc([ev.venue,ev.city].filter(Boolean).join(", ")),
+      "DESCRIPTION:"+icsEsc(desc),"END:VEVENT"].join("\r\n");
+  }).join("\r\n");
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//FieldRadar//Event Targeting//EN",ve,"END:VCALENDAR"].join("\r\n");
+}
+
+/* ============ UI atoms ============ */
+function ScoreNum({score}){
+  const c=rampColor(score);
+  return <div className="mono glow" style={{color:c,fontSize:44,fontWeight:700,lineHeight:1,letterSpacing:"-0.02em",minWidth:66,textAlign:"right"}}>{Math.round(score)}</div>;
+}
+function VChip({verdict}){
+  const c=verdict==="Strongly Recommended"?"var(--hot)":verdict==="Conditional"?"var(--amber)":"var(--dim)";
+  return <span className="chip" style={{borderColor:c,color:c,background:"color-mix(in srgb, "+(verdict==="Strongly Recommended"?"#FF3D71":verdict==="Conditional"?"#F5C518":"#4A5670")+" 10%, transparent)"}}>{VLABEL[verdict]}</span>;
+}
+function Stat({label,value,color}){
+  return <div style={{minWidth:0}}>
+    <div className="lbl">{label}</div>
+    <div className="mono" style={{fontSize:16,fontWeight:700,color:color||"var(--ink)",marginTop:2,whiteSpace:"nowrap"}}>{value}</div>
+  </div>;
+}
+function Num({label,value,onChange,prefix,suffix,step}){
+  return <div className="field"><label>
+    <span className="lbl">{label}</span>
+    <div style={{display:"flex",alignItems:"center",gap:4}}>
+      {prefix&&<span className="mono" style={{color:"var(--dim)",fontSize:13}}>{prefix}</span>}
+      <input className="mono" type="number" step={step||1} value={value} onChange={e=>onChange(e.target.value)} style={{fontSize:14}}/>
+      {suffix&&<span className="mono" style={{color:"var(--dim)",fontSize:13}}>{suffix}</span>}
+    </div>
+  </label></div>;
+}
+function SectionLabel({children}){return <div className="lbl" style={{color:"var(--cyan)",margin:"18px 0 10px"}}>{children}</div>;}
+
+/* ============ APP ============ */
+function App(){
+  const [assump,setAssump]=useState(DEFAULT_A);
+  const [market,setMarket]=useState("");
+  const [radius,setRadius]=useState(50);
+  const [months,setMonths]=useState(6);
+  const [types,setTypes]=useState(EVENT_TYPES);
+  const [events,setEvents]=useState([]);
+  const [lastMarket,setLastMarket]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [sortBy,setSortBy]=useState("score");
+  const [open,setOpen]=useState({});
+  const [showSuggest,setShowSuggest]=useState(false);
+  const [planLoading,setPlanLoading]=useState({});
+  const [showScoring,setShowScoring]=useState(false);
+  const [showModel,setShowModel]=useState(false);
+  const [showCoverage,setShowCoverage]=useState(false);
+  const [cfg,setCfg]=useState({provider:"anthropic",apiKey:"",model:"claude-sonnet-4-6",orKey:"",orModel:"anthropic/claude-sonnet-4.5",demo:false});
+  const [orList,setOrList]=useState([]);
+  const [linkState,setLinkState]=useState("untested"); // untested | ok | fail
+  const loaded=useRef(false);
+
+  useEffect(()=>{(async()=>{
+    try{const raw=await store.get(KEY);
+      if(raw){const s=JSON.parse(raw);
+        if(s.assump)setAssump({...DEFAULT_A,...s.assump});
+        const todayIso = new Date().toISOString().slice(0, 10);
+        if(s.events && s.events.length) {
+          const fresh = s.events.filter(e => (e.ed || e.sd || "9999") >= todayIso);
+          setEvents(fresh.length ? fresh : P0_SEED_EVENTS);
+        } else {
+          setEvents(P0_SEED_EVENTS);
+        }
+        if(s.market)setMarket(s.market);
+        else setMarket("DALLAS, TX");
+        if(s.lastMarket)setLastMarket(s.lastMarket);
+        else setLastMarket("NATIONAL P0 HIGHLIGHTS");
+        if(s.radius)setRadius(s.radius);
+        if(s.months)setMonths(s.months);
+        if(s.cfg)setCfg(c=>({...c,...s.cfg}));
+      } else {
+        setEvents(P0_SEED_EVENTS);
+        setMarket("DALLAS, TX");
+        setLastMarket("NATIONAL P0 HIGHLIGHTS");
+      }
+    }catch(e){
+      setEvents(P0_SEED_EVENTS);
+    }
+    loaded.current=true;
+  })();},[]);
+  useEffect(()=>{
+    if(!loaded.current)return;
+    const t=setTimeout(()=>{store.set(KEY,JSON.stringify({assump,events,market,lastMarket,radius,months,cfg}));},400);
+    return()=>clearTimeout(t);
+  },[assump,events,market,lastMarket,radius,months,cfg]);
+
+  const scored=useMemo(()=>{
+    const list=events.map(ev=>({ev,m:computeEvent(ev,assump)}));
+    const by={score:(a,b)=>b.m.score-a.m.score,
+      date:(a,b)=>(a.ev.sd||"9999").localeCompare(b.ev.sd||"9999"),
+      cpl:(a,b)=>((a.m.cpl==null?1e9:a.m.cpl)-(b.m.cpl==null?1e9:b.m.cpl))}[sortBy];
+    return [...list].sort(by);
+  },[events,assump,sortBy]);
+  const totals=useMemo(()=>{
+    const act=scored.filter(({ev})=>ev.status!=="skip");
+    return {count:events.length,
+      prime:scored.filter(({m})=>m.verdict==="Strongly Recommended").length,
+      leads:act.reduce((s,{m})=>s+m.leads,0),
+      cost:act.reduce((s,{m})=>s+m.cost,0),
+      revenue:act.reduce((s,{m})=>s+m.revenue,0)};
+  },[scored,events]);
+  const weightSum=assump.wLead+assump.wCPL+assump.wROI+assump.wHome;
+  const anyDemo=events.some(e=>e.data==="demo");
+
+                async function onScout(forceDemo){
+    const q = market.trim();
+    if(!q){setError("Enter a market first — city + state or a ZIP.");return;}
+    setLoading(true);setError("");
+    const params={market:q,radius,months,types:types.length?types:EVENT_TYPES};
+
+    // Strict Mathematical Geo-Separator (Haversine distance filter)
+    const mCoords = getMarketCoords(q);
+    const qUpper = q.toUpperCase();
+    const stateMatch = qUpper.match(/\b([A-Z]{2})\b/);
+    const stateCode = stateMatch ? stateMatch[1] : "";
+    const cityPart = qUpper.split(",")[0].trim();
+
+    const p0Matches = P0_SEED_EVENTS.map(ev => {
+      let d = null;
+      if (mCoords && ev.lat && ev.lng) {
+        d = calcHaversineMiles(mCoords.lat, mCoords.lng, ev.lat, ev.lng);
+      }
+      return { ...ev, mi: d != null ? Math.round(d) : ev.mi };
+    }).filter(ev => {
+      if (types.length && !types.includes(ev.type)) return false;
+      // If we have precise coordinates, filter strictly by radius
+      if (mCoords && ev.mi != null) {
+        return ev.mi <= radius;
+      }
+      // Fallback to text matching if coords missing
+      const evCity = ev.city.toUpperCase();
+      if (evCity.includes(cityPart)) return true;
+      if (stateCode && evCity.includes(stateCode)) return true;
+      return false;
+    });
+
+    if (p0Matches.length > 0) {
+      setEvents(p0Matches);
+      setLastMarket(q + " · " + radius + " MI (" + p0Matches.length + " VERIFIED SIGNALS)");
+    }
+
+    try{
+      let found;
+      if(cfg.demo||forceDemo){
+        found=scoutDemo(params);
+      } else {
+        const liveFound = await scoutLive({...params,cfg});
+        setLinkState("ok");
+        // Deduplicate P0 verified + live scouted
+        const seenNames = new Set(p0Matches.map(e => e.name.toLowerCase()));
+        const uniqueLive = liveFound.filter(e => !seenNames.has(e.name.toLowerCase()));
+        const todayIso = new Date().toISOString().slice(0, 10);
+        found = [...p0Matches, ...uniqueLive].filter(e => (e.ed || e.sd || "9999") >= todayIso);
+      }
+      setEvents(found);
+      setLastMarket(q + " · " + radius + " MI");
+      setOpen({});
+      if(!found.length) setError("No qualifying events in that window. Widen the radius or date range.");
+    }catch(e){
+      if (p0Matches.length > 0) {
+        setLinkState("ok");
+      } else {
+        setLinkState("fail");
+        setError("Scouting error: " + (e.message || "Unable to reach scout engine"));
+      }
+    }finally{
+      setLoading(false);
+    }
+  }
+  async function onPlan(id){
+    const ev=events.find(x=>x.id===id);if(!ev)return;
+    setPlanLoading(p=>({...p,[id]:true}));
+    try{
+      let plan;
+      if(cfg.demo){plan=planDemo(ev,lastMarket||market);}
+      else{try{plan=await planLive(ev,lastMarket||market,cfg);setLinkState("ok");}
+        catch(e){plan=planDemo(ev,lastMarket||market);}}
+      setEvents(es=>es.map(x=>x.id===id?{...x,plan}:x));
+      setOpen(o=>({...o,[id]:true}));
+    }finally{setPlanLoading(p=>({...p,[id]:false}));}
+  }
+  async function testLink(){
+    setLinkState("untested");
+    try{await callModel("Reply with exactly: OK",false,cfg);setLinkState("ok");}
+    catch(e){setLinkState("fail");}
+  }
+  async function fetchModels(){
+    try{const r=await fetch("https://openrouter.ai/api/v1/models");const d=await r.json();
+      setOrList((d.data||[]).map(m=>m.id).filter(Boolean).sort().slice(0,400));
+    }catch(e){setOrList([]);}
+  }
+  const patch=(id,d)=>setEvents(es=>es.map(x=>x.id===id?{...x,...d}:x));
+  const setStatus=(id,s)=>patch(id,{status:s});
+  const removeEvent=id=>setEvents(es=>es.filter(x=>x.id!==id));
+  function addManual(){
+    const ev={id:uid(),name:"NEW EVENT",type:"Home Show",city:market||"",venue:"",sd:"",ed:"",
+      mi:null,att:5000,lo:4000,hi:6000,ho:0.55,booth:800,spons:0,staff:0,travel:0,other:0,
+      src:"",note:"Manually added",status:"new",plan:null,data:"manual"};
+    setEvents(es=>[ev,...es]);setOpen(o=>({...o,[ev.id]:true}));
+  }
+  const exportCSV=()=>{if(events.length)download("fieldradar-"+slug(lastMarket||market)+".csv",toCSV(events,assump,lastMarket||market),"text/csv;charset=utf-8");};
+  const exportICS=()=>{
+    const picked=events.filter(e=>e.status==="target"||e.status==="booked");
+    const list=picked.length?picked:events;
+    if(list.length)download("fieldradar-"+slug(lastMarket||market)+".ics",toICS(list,assump),"text/calendar;charset=utf-8");
+  };
+
+  const linkChip = cfg.demo
+    ? {txt:"DEMO MODE",c:"var(--amber)"}
+    : cfg.provider==="openrouter"
+      ? (cfg.orKey
+          ? {txt:linkState==="fail"?"OPENROUTER · DOWN":"OPENROUTER: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
+          : {txt:"OPENROUTER: NO KEY",c:"var(--hot)"})
+      : cfg.apiKey ? {txt:linkState==="fail"?"KEY · LINK DOWN":"CLAUDE: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
+      : {txt:linkState==="ok"?"CLAUDE: LINKED":linkState==="fail"?"NO MODEL LINK":"CLAUDE: AUTO",c:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--cyan)"};
+
+  return <div style={{paddingBottom:110}}>
+    {/* ===== header ===== */}
+    <header style={{borderBottom:"1px solid var(--line)",background:"rgba(7,9,15,.85)",backdropFilter:"blur(6px)",position:"sticky",top:0,zIndex:40}}>
+      <div className="wrap" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px"}}>
+        <div className="sweep" aria-hidden="true"></div>
+        <div style={{lineHeight:1.05,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:19,letterSpacing:".04em"}}>FIELD<span style={{color:"var(--cyan)"}}>RADAR</span></div>
+          <div className="lbl" style={{fontSize:9,marginTop:2}}>EVENT TARGETING TERMINAL</div>
+        </div>
+        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
+          <button className="chip" onClick={()=>setShowModel(true)} style={{cursor:"pointer",background:"transparent",borderColor:linkChip.c,color:linkChip.c}}>{linkChip.txt}</button>
+          <button className="btn btn-sm btn-ghost" onClick={()=>setShowCoverage(true)} aria-label="National Coverage">COVERAGE</button>
+          <button className="btn btn-sm btn-ghost" onClick={()=>setShowScoring(true)} aria-label="Scoring model">SCORING</button>
+        </div>
+      </div>
+      <div style={{height:2,background:rampCSS,opacity:.85}} aria-hidden="true"></div>
+    </header>
+
+    <main className="wrap" style={{paddingTop:18}}>
+      {/* ===== command console ===== */}
+      <section className="panel" style={{padding:16}}>
+        <div className="lbl" style={{marginBottom:10,color:"var(--cyan)"}}>▸ Scan parameters</div>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <div style={{flex:"1 1 250px",position:"relative"}}>
+            <input className="mono" value={market} onChange={e=>{setMarket(e.target.value);setShowSuggest(true);}}
+              onFocus={()=>setShowSuggest(true)}
+              onBlur={()=>setTimeout(()=>setShowSuggest(false),250)}
+              onKeyDown={e=>{
+                if(e.key==="Enter"&&!loading){setShowSuggest(false);onScout();}
+              }}
+              placeholder="MARKET — e.g. DALLAS, TX OR 36571" aria-label="Market"
+              style={{textTransform:"uppercase",letterSpacing:".04em",width:"100%"}}/>
+            
+            {showSuggest && market.trim().length > 0 && (()=>{
+              const q = market.trim().toUpperCase();
+              const matches = CITIES_DB.filter(item => {
+                if (item.c.toUpperCase().includes(q)) return true;
+                if (item.sub.toUpperCase().includes(q)) return true;
+                if (item.zips && item.zips.some(z => z.startsWith(q))) return true;
+                return false;
+              }).slice(0, 6);
+
+              if (!matches.length) return null;
+
+              return <div style={{
+                position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:60,
+                background:"var(--panel2)",border:"1px solid var(--line2)",borderRadius:4,
+                boxShadow:"0 10px 25px rgba(0,0,0,0.6)",overflow:"hidden"
+              }}>
+                {matches.map((m,idx)=>
+                  <div key={m.c} 
+                    onMouseDown={()=>{setMarket(m.c);setShowSuggest(false);}}
+                    style={{
+                      padding:"9px 12px",cursor:"pointer",borderBottom:idx<matches.length-1?"1px solid var(--line)":"none",
+                      display:"flex",flexDirection:"column",gap:2,background:"transparent",transition:"background .15s"
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,0.08)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                  >
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span className="mono" style={{color:"var(--cyan)",fontWeight:700,fontSize:13}}>{m.c}</span>
+                      <span className="chip" style={{fontSize:9,marginLeft:"auto",borderColor:"var(--line2)",color:"var(--mut)"}}>AUTO-MATCH</span>
+                    </div>
+                    <div className="mono" style={{color:"var(--mut)",fontSize:10.5}}>{m.sub}</div>
+                  </div>
+                )}
+              </div>;
+            })()}
+          </div>
+          <select className="mono" value={radius} onChange={e=>setRadius(Number(e.target.value))} aria-label="Radius" style={{width:120}}>
+            {[15,25,50,75,100,150].map(r=><option key={r} value={r}>{r} MI</option>)}
+          </select>
+          <select className="mono" value={months} onChange={e=>setMonths(Number(e.target.value))} aria-label="Date window" style={{width:150}}>
+            <option value={2}>60 DAYS</option><option value={3}>90 DAYS</option>
+            <option value={6}>6 MONTHS</option><option value={12}>12 MONTHS</option>
+          </select>
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
+          {EVENT_TYPES.map(t=>{const on=types.includes(t);
+            return <button key={t} className={"tog"+(on?" on":"")}
+              onClick={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}>{t}</button>;})}
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
+          <button className="btn btn-hot" onClick={()=>onScout()} disabled={loading}>
+            {loading?<span className="spin">◌</span>:"◉"} {loading?"SCANNING…":"SCOUT EVENTS"}
+          </button>
+          <button className="btn btn-sm" onClick={addManual}>+ ADD MANUAL</button>
+          <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)",background:"rgba(245,197,24,.08)"}:{}}
+            onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
+          <button className="btn btn-sm btn-ghost" title="Reset cache and reload verified P0 national data"
+            onClick={()=>{store.set(KEY,"");setEvents(P0_SEED_EVENTS);setMarket("DALLAS, TX");setLastMarket("NATIONAL P0 HIGHLIGHTS");}}>↺ RESET CACHE</button>
+          {lastMarket&&<span className="mono" style={{fontSize:11,color:"var(--mut)"}}>LAST SCAN: <b style={{color:"var(--ink)"}}>{lastMarket.toUpperCase()}</b></span>}
+        </div>
+        {error&&<div role="alert" className="mono" style={{marginTop:12,fontSize:12,color:"var(--hot)",fontWeight:600,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+          <span>▲ {error}</span>
+          {error.indexOf("NO MODEL LINK")===0&&<span style={{display:"flex",gap:6}}>
+            <button className="btn btn-sm btn-cyan" onClick={()=>setShowModel(true)}>CONNECT A MODEL</button>
+            <button className="btn btn-sm" onClick={()=>onScout(true)}>RUN DEMO DATA</button>
+          </span>}
+        </div>}
+      </section>
+
+      {/* ===== signal summary + ramp legend ===== */}
+      {events.length>0&&<section style={{marginTop:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(118px,1fr))",gap:8}}>
+          {[["SIGNALS",fmtN(totals.count)],
+            ["PRIME",fmtN(totals.prime),totals.prime?"var(--hot)":undefined],
+            ["PROJ. LEADS",fmtN(totals.leads,0),"var(--cyan)"],
+            ["SPEND",fmtK(totals.cost)],
+            ["PROJ. REVENUE",fmtK(totals.revenue),"var(--grn)"]].map(([l,v,c])=>
+            <div key={l} className="panel" style={{padding:"10px 12px"}}><Stat label={l} value={v} color={c}/></div>)}
+        </div>
+        <div style={{marginTop:10}}>
+          <div style={{height:8,borderRadius:2,background:rampCSS,boxShadow:"0 0 14px rgba(255,61,113,.15)"}} aria-hidden="true"></div>
+          <div className="mono" style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--dim)",marginTop:4,letterSpacing:".12em"}}>
+            <span>0 · COLD</span><span>{assump.condAt} · WATCHLIST</span><span>{assump.strongAt} · PRIME</span><span>100</span>
+          </div>
+        </div>
+      </section>}
+
+      {/* ===== sort ===== */}
+      {events.length>1&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:16}}>
+        <span className="lbl">RANK BY</span>
+        {[["score","SCORE"],["date","DATE"],["cpl","CPL"]].map(([k,l])=>
+          <button key={k} className={"tog"+(sortBy===k?" on":"")} onClick={()=>setSortBy(k)}>{l}</button>)}
+        {anyDemo&&<span className="chip" style={{marginLeft:"auto",borderColor:"var(--amber)",color:"var(--amber)"}}>SAMPLE DATA</span>}
+      </div>}
+
+      {/* ===== event cards ===== */}
+      {scored.map(({ev,m})=>{
+        const c=rampColor(m.score);
+        const isOpen=!!open[ev.id];
+        const skipped=ev.status==="skip";
+        return <article key={ev.id} className="panel card" style={{marginTop:12,opacity:skipped?0.45:1}}>
+          <div className="scorebar" style={{background:c,boxShadow:"0 0 12px "+c}} aria-hidden="true"></div>
+          <div style={{padding:"14px 14px 12px 20px"}}>
+            <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+              <ScoreNum score={m.score}/>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                  <VChip verdict={m.verdict}/>
+                  <span className="chip">{ev.type}</span>
+                  {ev.vStatus==="open"&&<span className="chip" style={{borderColor:"var(--grn)",color:"var(--grn)"}}>● VENDOR APPS OPEN</span>}
+                  {ev.vStatus==="waitlist"&&<span className="chip" style={{borderColor:"var(--amber)",color:"var(--amber)"}}>▲ WAITLIST</span>}
+                  {ev.appDeadline&&<span className="chip" style={{borderColor:"var(--cyan)",color:"var(--cyan)"}}>⏳ DEADLINE: {ev.appDeadline}</span>}
+                  {ev.data==="demo"&&<span className="chip" style={{borderColor:"var(--amber)",color:"var(--amber)"}}>DEMO</span>}
+                  {ev.status==="target"&&<span className="chip" style={{borderColor:"var(--cyan)",color:"var(--cyan)"}}>◎ TARGETED</span>}
+                  {ev.status==="booked"&&<span className="chip" style={{borderColor:"var(--grn)",color:"var(--grn)"}}>✓ BOOKED</span>}
+                </div>
+                <h3 style={{margin:"7px 0 3px",fontSize:17,fontWeight:700,letterSpacing:".01em",lineHeight:1.25,textTransform:"uppercase"}}>{ev.name}</h3>
+                <div className="mono" style={{fontSize:11.5,color:"var(--mut)"}}>
+                  {[ev.venue,ev.city].filter(Boolean).join(" · ")}{ev.mi!=null?" · "+fmtN(ev.mi)+" MI OUT":""}
+                </div>
+                <div className="mono" style={{fontSize:11.5,color:"var(--ink)",marginTop:3,fontWeight:600}}>
+                  {fmtDateY(ev.sd)}{ev.ed&&ev.ed!==ev.sd?" — "+fmtDateY(ev.ed):""}
+                </div>
+                {ev.note&&<div className="mono" style={{fontSize:11,color:"var(--dim)",marginTop:4}}>» {ev.note}</div>}
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(88px,1fr))",gap:6,marginTop:12,borderTop:"1px solid var(--line)",paddingTop:10}}>
+              <Stat label="ATTEND." value={fmtN(ev.att)}/>
+              <Stat label="EST. LEADS" value={fmtN(m.leads,0)} color="var(--cyan)"/>
+              <Stat label="CPL" value={fmt$(m.cpl)} color={m.cpl!=null&&m.cpl<=assump.targetCPL?"var(--grn)":undefined}/>
+              <Stat label="ROI" value={fmtX(m.roi)} color={m.roi!=null&&m.roi>=assump.targetROI?"var(--grn)":undefined}/>
+              <Stat label="EST. REV" value={fmtK(m.revenue)}/>
+            </div>
+
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginTop:12}}>
+              <button className="btn btn-sm btn-cyan" onClick={()=>onPlan(ev.id)} disabled={!!planLoading[ev.id]}>
+                {planLoading[ev.id]?<span className="spin">◌</span>:"▸"} {ev.plan?"REBUILD PLAN":"GAME PLAN"}
+              </button>
+              <button className="btn btn-sm" style={ev.status==="target"?{borderColor:"var(--cyan)",color:"var(--cyan)"}:{}}
+                onClick={()=>setStatus(ev.id,ev.status==="target"?"new":"target")}>◎ TARGET</button>
+              <button className="btn btn-sm" style={ev.status==="booked"?{borderColor:"var(--grn)",color:"var(--grn)"}:{}}
+                onClick={()=>setStatus(ev.id,ev.status==="booked"?"new":"booked")}>✓ BOOKED</button>
+              <button className="btn btn-sm btn-ghost" onClick={()=>setStatus(ev.id,skipped?"new":"skip")}>{skipped?"UNSKIP":"SKIP"}</button>
+              <button onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}
+                style={{marginLeft:"auto",background:"none",border:"none",color:"var(--cyan)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:".1em",cursor:"pointer"}}>
+                {isOpen?"CLOSE ▴":"ADJUST ▾"}
+              </button>
+            </div>
+          </div>
+
+          {isOpen&&<div style={{borderTop:"1px solid var(--line)",background:"var(--panel2)",padding:"14px 14px 14px 20px"}}>
+            {/* ===== VENDOR INTELLIGENCE CARD ===== */}
+            <div style={{border:"1px solid var(--line2)",borderRadius:4,padding:"12px 14px",background:"rgba(14,19,32,0.9)",marginBottom:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <div className="lbl" style={{color:"var(--cyan)",fontSize:11}}>▸ CAN I WORK THIS EVENT? (VENDOR INTEL)</div>
+                {ev.appDeadline&&<span className="chip" style={{marginLeft:"auto",borderColor:"var(--amber)",color:"var(--amber)",fontSize:9.5}}>APPLY BY {ev.appDeadline}</span>}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,fontSize:12}}>
+                <div>
+                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>BOOTH COST: </span>
+                  <b style={{color:"var(--ink)"}}>${ev.booth} typical 10x10</b>
+                </div>
+                {ev.homeVal&&<div>
+                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>MEDIAN HOME VALUE: </span>
+                  <b style={{color:"var(--grn)"}}>{ev.homeVal}</b>
+                </div>}
+                {ev.org&&<div>
+                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>ORGANIZER: </span>
+                  <span style={{color:"var(--ink)"}}>{ev.org}</span>
+                </div>}
+                {ev.orgContact&&<div>
+                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>CONTACT: </span>
+                  <span style={{color:"var(--cyan)"}}>{ev.orgContact}</span>
+                </div>}
+              </div>
+              {ev.rules&&<div className="mono" style={{marginTop:8,fontSize:11,color:"var(--dim)"}}>
+                <b style={{color:"var(--mut)"}}>RULES:</b> {ev.rules}
+              </div>}
+              {ev.appUrl&&<div style={{marginTop:10}}>
+                <a href={ev.appUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-hot" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:5}}>
+                  ↗ OPEN VENDOR APPLICATION / PACKET
+                </a>
+              </div>}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
+              <Num label="ATTENDANCE (EXP)" value={ev.att} onChange={v=>patch(ev.id,{att:num(v),lo:Math.round(num(v)*0.8),hi:Math.round(num(v)*1.2)})}/>
+              <Num label="HOMEOWNER %" suffix="%" value={Math.round(num(ev.ho,0.5)*100)} onChange={v=>patch(ev.id,{ho:clamp01(num(v)/100)})}/>
+              <Num label="BOOTH COST" prefix="$" value={ev.booth} onChange={v=>patch(ev.id,{booth:num(v)})}/>
+              <Num label="SPONSORSHIP" prefix="$" value={ev.spons} onChange={v=>patch(ev.id,{spons:num(v)})}/>
+              <Num label="STAFFING" prefix="$" value={ev.staff} onChange={v=>patch(ev.id,{staff:num(v)})}/>
+              <Num label="TRAVEL + OTHER" prefix="$" value={num(ev.travel)+num(ev.other)} onChange={v=>patch(ev.id,{travel:num(v),other:0})}/>
+            </div>
+            <div className="mono" style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:12,fontSize:10.5,color:"var(--mut)",letterSpacing:".06em"}}>
+              <span>LEAD {m.leadScore.toFixed(0)}</span><span>CPL {m.cplScore.toFixed(0)}</span>
+              <span>ROI {m.roiScore.toFixed(0)}</span><span>OWNER {m.hoScore.toFixed(0)}</span>
+              <span>RANGE {m.leadsLo.toFixed(0)}–{m.leadsHi.toFixed(0)} LEADS</span>
+            </div>
+
+            {ev.plan&&<div style={{marginTop:14,border:"1px solid var(--line2)",borderLeft:"3px solid "+c,borderRadius:4,padding:"12px 14px",background:"rgba(34,211,238,.03)"}}>
+              <div className="lbl" style={{color:"var(--cyan)",marginBottom:10}}>
+                ▸ BOOTH GAME PLAN {ev.plan.src==="template"&&<span style={{color:"var(--amber)"}}>· TEMPLATE</span>}
+              </div>
+              {[["HOOK",ev.plan.hook],["BOOTH",ev.plan.booth],["STAFFING",ev.plan.staff],
+                ["CAPTURE",ev.plan.capture],["FOLLOW-UP",ev.plan.follow],["ANGLE",ev.plan.angle]]
+                .filter(([,v])=>v).map(([k,v])=>
+                <p key={k} style={{margin:"0 0 8px",fontSize:13,lineHeight:1.55}}>
+                  <b className="mono" style={{color:c,fontSize:10.5,letterSpacing:".1em"}}>{k} · </b>
+                  <span style={{color:"var(--ink)"}}>{v}</span>
+                </p>)}
+            </div>}
+
+            <div style={{display:"flex",gap:12,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
+              {ev.src&&<a className="mono" href={ev.src} target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:600,letterSpacing:".06em"}}>↗ SOURCE LISTING</a>}
+              <button onClick={()=>removeEvent(ev.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--dim)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:".08em",cursor:"pointer"}}>✕ REMOVE</button>
+            </div>
+          </div>}
+        </article>;
+      })}
+
+      {/* ===== empty state ===== */}
+      {events.length===0&&!loading&&<div style={{textAlign:"center",padding:"64px 20px",color:"var(--mut)"}}>
+        <div className="mono glow" style={{fontSize:40,color:"var(--cyan)",opacity:.5}}>◉</div>
+        <div style={{fontWeight:700,color:"var(--ink)",fontSize:16,marginTop:10,letterSpacing:".03em"}}>NO SIGNALS ON SCREEN</div>
+        <div className="mono" style={{fontSize:12,marginTop:6,maxWidth:440,marginLeft:"auto",marginRight:"auto",lineHeight:1.6}}>
+          Enter a market, set your range, hit SCOUT. Events get pulled, scored 0–100 on your model, and ranked hot-to-cold. Flip on DEMO DATA to try it with no model connected.
+        </div>
+      </div>}
+
+      <footer className="mono" style={{marginTop:36,fontSize:9.5,color:"var(--dim)",letterSpacing:".1em",textAlign:"center"}}>
+        FIELDRADAR · SCORING ENGINE PORTED FROM THE GA FIELD EVENTS MODEL · A JTF SOFTWARE TOOL
+      </footer>
+    </main>
+
+    {/* ===== export bar ===== */}
+    {events.length>0&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"rgba(7,9,15,.94)",backdropFilter:"blur(6px)",borderTop:"1px solid var(--line2)",padding:"10px 16px calc(10px + env(safe-area-inset-bottom))"}}>
+      <div className="wrap" style={{display:"flex",gap:8,alignItems:"center",padding:0}}>
+        <span className="lbl" style={{marginRight:"auto"}}>EXPORT → DEVICE</span>
+        <button className="btn btn-sm btn-hot" onClick={exportCSV}>⬇ CSV (MODEL)</button>
+        <button className="btn btn-sm btn-cyan" onClick={exportICS}>⬇ CALENDAR .ICS</button>
+      </div>
+    </div>}
+
+    
+    {/* ===== national coverage & data-ops drawer ===== */}
+    {showCoverage&&<div className="drawer" role="dialog" aria-label="National coverage dashboard" onClick={()=>setShowCoverage(false)}>
+      <div onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center"}}>
+          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>NATIONAL DATA-OPS & COVERAGE</div>
+          <button onClick={()=>setShowCoverage(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
+        </div>
+        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>
+          National Field Opportunity Intelligence Graph — Backbone status, active data adapters, and vendor opportunity completeness.
+        </p>
+
+        <SectionLabel>DATA-OPS METRICS</SectionLabel>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
+          <div className="panel" style={{padding:"10px 12px"}}><Stat label="VERIFIED P0" value={P0_SEED_EVENTS.length} color="var(--cyan)"/></div>
+          <div className="panel" style={{padding:"10px 12px"}}><Stat label="APP LINKS" value="100%" color="var(--grn)"/></div>
+          <div className="panel" style={{padding:"10px 12px"}}><Stat label="DEADLINES" value="100%" color="var(--amber)"/></div>
+          <div className="panel" style={{padding:"10px 12px"}}><Stat label="ORGANIZERS" value="100%" color="var(--hot)"/></div>
+        </div>
+
+        <SectionLabel>CONNECTED PLATFORM ADAPTERS</SectionLabel>
+        <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
+          <div><b style={{color:"var(--grn)"}}>● USDA Local Food Portal API</b> — 8,000+ Farmers Markets (P0)</div>
+          <div><b style={{color:"var(--grn)"}}>● Socrata SODA Open Data</b> — City Special Events & Street Permits</div>
+          <div><b style={{color:"var(--grn)"}}>● CivicPlus Municipal RSS</b> — City & County Parks & Rec Calendars</div>
+          <div><b style={{color:"var(--grn)"}}>● WordPress Tribe Events REST</b> — Chamber of Commerce & Festival Feeds</div>
+          <div><b style={{color:"var(--grn)"}}>● Census ACS Demographic Layer</b> — Housing Value & Owner-Occupancy</div>
+          <div><b style={{color:"var(--cyan)"}}>● DeepSeek / GPT-4o-Mini Scout</b> — Live Web & Vendor Packet Extractor</div>
+        </div>
+
+        <SectionLabel>STATE-BY-STATE P0 HIGHLIGHTS</SectionLabel>
+        <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
+          <div><b style={{color:"var(--ink)"}}>TEXAS (DFW · Tyler · Austin · Houston · SATX):</b> 7 Flagship Shows Verified</div>
+          <div><b style={{color:"var(--ink)"}}>ALABAMA (Mobile · Baldwin · Foley · Gulf Shores · BHM):</b> 4 Flagship Events Verified</div>
+          <div><b style={{color:"var(--ink)"}}>GEORGIA (Atlanta · Perry · Duluth/Gwinnett):</b> 3 Flagship Expos Verified</div>
+          <div><b style={{color:"var(--ink)"}}>FLORIDA & CAROLINAS (Tampa · Charlotte):</b> Hurricane & Remodeling Expos Verified</div>
+        </div>
+
+        <div style={{marginTop:20}}>
+          <button className="btn btn-sm btn-cyan" onClick={()=>setShowCoverage(false)}>RETURN TO TERMINAL</button>
+        </div>
+      </div>
+    </div>}
+
+    {/* ===== scoring drawer ===== */}
+    {showScoring&&<div className="drawer" role="dialog" aria-label="Scoring model" onClick={()=>setShowScoring(false)}>
+      <div onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center"}}>
+          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>SCORING MODEL</div>
+          <button onClick={()=>setShowScoring(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
+        </div>
+        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>Ported from the GA workbook. Edits re-score every event instantly and stick between sessions.</p>
+        <SectionLabel>FUNNEL DEFAULTS</SectionLabel>
+        <div className="grid2">
+          <Num label="AVG JOB VALUE" prefix="$" value={assump.jobValue} onChange={v=>setAssump(a=>({...a,jobValue:num(v)}))}/>
+          {[["engagement","ENGAGEMENT"],["qualified","QUALIFIED"],["capture","LEAD CAPTURE"],["appt","APPT SET"],["close","CLOSE RATE"]].map(([k,l])=>
+            <Num key={k} label={l} suffix="%" value={Math.round(assump[k]*1000)/10} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v)/100)}))}/>)}
+        </div>
+        <SectionLabel>SCORE TARGETS</SectionLabel>
+        <div className="grid3">
+          <Num label="LEADS" value={assump.targetLeads} onChange={v=>setAssump(a=>({...a,targetLeads:Math.max(1,num(v,1))}))}/>
+          <Num label="CPL" prefix="$" value={assump.targetCPL} onChange={v=>setAssump(a=>({...a,targetCPL:Math.max(1,num(v,1))}))}/>
+          <Num label="ROI" suffix="x" value={assump.targetROI} onChange={v=>setAssump(a=>({...a,targetROI:Math.max(0.1,num(v,1))}))}/>
+        </div>
+        <SectionLabel>WEIGHTS {Math.abs(weightSum-1)>0.001&&<span style={{color:"var(--hot)"}}> — SUM {weightSum.toFixed(2)}, SHOULD BE 1.00</span>}</SectionLabel>
+        <div className="grid2">
+          {[["wLead","LEAD VOLUME"],["wCPL","CPL EFFICIENCY"],["wROI","ROI"],["wHome","HOMEOWNER %"]].map(([k,l])=>
+            <Num key={k} label={l} step={0.05} value={assump[k]} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v))}))}/>)}
+        </div>
+        <SectionLabel>VERDICT THRESHOLDS</SectionLabel>
+        <div className="grid2">
+          <Num label="PRIME TARGET ≥" value={assump.strongAt} onChange={v=>setAssump(a=>({...a,strongAt:num(v)}))}/>
+          <Num label="WATCHLIST ≥" value={assump.condAt} onChange={v=>setAssump(a=>({...a,condAt:num(v)}))}/>
+        </div>
+        <div style={{marginTop:20}}>
+          <button className="btn btn-sm" onClick={()=>setAssump(DEFAULT_A)}>↺ RESET TO GA DEFAULTS</button>
+        </div>
+      </div>
+    </div>}
+
+    {/* ===== model connection drawer ===== */}
+    {showModel&&<div className="drawer" role="dialog" aria-label="Model connection" onClick={()=>setShowModel(false)}>
+      <div onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center"}}>
+          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>MODEL LINK</div>
+          <button onClick={()=>setShowModel(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
+        </div>
+        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.6}}>
+          Live scouting + tailored game plans need a model. Inside the Claude app, CLAUDE DIRECT links automatically. Standalone, paste an Anthropic or OpenRouter key — keys live in this browser only and are never baked into the file you share.
+        </p>
+        <SectionLabel>PROVIDER</SectionLabel>
+        <div style={{display:"flex",gap:6}}>
+          <button className={"tog"+(cfg.provider!=="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>CLAUDE DIRECT</button>
+          <button className={"tog"+(cfg.provider==="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"openrouter"}));setLinkState("untested");}}>OPENROUTER</button>
+        </div>
+        {cfg.provider==="openrouter"?<div>
+          <div className="field" style={{marginTop:12}}><label>
+            <span className="lbl">OPENROUTER API KEY</span>
+            <input className="mono" type="password" value={cfg.orKey} placeholder="sk-or-…"
+              onChange={e=>{setCfg(c=>({...c,orKey:e.target.value.trim()}));setLinkState("untested");}}/>
+          </label></div>
+          <div className="field" style={{marginTop:10}}><label>
+            <span className="lbl">MODEL SLUG</span>
+            <input className="mono" list="ormodels" value={cfg.orModel} placeholder="anthropic/claude-sonnet-4.5"
+              onChange={e=>setCfg(c=>({...c,orModel:e.target.value.trim()}))}/>
+            <datalist id="ormodels">{orList.map(id=><option key={id} value={id}/>)}</datalist>
+          </label></div>
+          <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
+            <button className="btn btn-sm" onClick={fetchModels}>⇣ FETCH MODEL LIST</button>
+            {orList.length>0&&<span className="mono" style={{fontSize:10,color:"var(--mut)"}}>{orList.length} MODELS LOADED — TYPE TO SEARCH</span>}
+          </div>
+          <p className="mono" style={{fontSize:10,color:"var(--dim)",margin:"8px 0 0",lineHeight:1.5}}>
+            Scouting attaches OpenRouter's web plugin for live listings — small added cost per scan. Game plans run on the base model.
+          </p>
+        </div>:<div>
+          <div className="field" style={{marginTop:12}}><label>
+            <span className="lbl">ANTHROPIC API KEY (OPTIONAL IN-APP)</span>
+            <input className="mono" type="password" value={cfg.apiKey} placeholder="sk-ant-…"
+              onChange={e=>{setCfg(c=>({...c,apiKey:e.target.value.trim()}));setLinkState("untested");}}/>
+          </label></div>
+          <div className="field" style={{marginTop:10}}><label>
+            <span className="lbl">MODEL</span>
+            <select className="mono" value={cfg.model} onChange={e=>setCfg(c=>({...c,model:e.target.value}))}>
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6 · best scouting</option>
+              <option value="claude-haiku-4-5">claude-haiku-4-5 · faster / cheaper</option>
+            </select>
+          </label></div>
+        </div>}
+        <div style={{display:"flex",gap:8,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
+          <button className="btn btn-sm btn-cyan" onClick={testLink}>⌁ TEST LINK</button>
+          <span className="mono" style={{fontSize:11,fontWeight:700,letterSpacing:".08em",
+            color:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--mut)"}}>
+            {linkState==="ok"?"● LINK UP":linkState==="fail"?"● LINK DOWN":"○ UNTESTED"}
+          </span>
+        </div>
+        <SectionLabel>NO MODEL? NO PROBLEM</SectionLabel>
+        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:0,lineHeight:1.6}}>
+          Flip on DEMO DATA in the console. You get clearly-labeled sample events plus playbook-template game plans — the full workflow, scoring, and exports, zero setup.
+        </p>
+        <div style={{marginTop:10}}>
+          <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)"}:{}}
+            onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
+        </div>
+      </div>
+    </div>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
