@@ -80,10 +80,12 @@ const { useState, useEffect, useMemo, useRef } = React;
 /* ============ constants ============ */
 
 /* ============ GEOSPATIAL COORDINATES & HAVERSINE ENGINE ============ */
+const DYNAMIC_COORDS_CACHE = {};
 const MARKET_GEO_LOOKUP = {"DALLAS, TX": {"lat": 32.7767, "lng": -96.797}, "FORT WORTH, TX": {"lat": 32.7555, "lng": -97.3308}, "TYLER, TX": {"lat": 32.3513, "lng": -95.3011}, "CANTON, TX": {"lat": 32.5565, "lng": -95.8641}, "PLANO, TX": {"lat": 33.0198, "lng": -96.6989}, "FRISCO, TX": {"lat": 33.1507, "lng": -96.8236}, "MCKINNEY, TX": {"lat": 33.1972, "lng": -96.6398}, "DENTON, TX": {"lat": 33.2148, "lng": -97.1331}, "GRAPEVINE, TX": {"lat": 32.9343, "lng": -97.0781}, "AUSTIN, TX": {"lat": 30.2672, "lng": -97.7431}, "HOUSTON, TX": {"lat": 29.7604, "lng": -95.3698}, "SAN ANTONIO, TX": {"lat": 29.4241, "lng": -98.4936}, "MOBILE, AL": {"lat": 30.6954, "lng": -88.0399}, "SARALAND, AL": {"lat": 30.8207, "lng": -88.0706}, "DAPHNE, AL": {"lat": 30.6035, "lng": -87.9036}, "FAIRHOPE, AL": {"lat": 30.523, "lng": -87.9033}, "FOLEY, AL": {"lat": 30.4066, "lng": -87.6836}, "GULF SHORES, AL": {"lat": 30.246, "lng": -87.7008}, "ROBERTSDALE, AL": {"lat": 30.5546, "lng": -87.7119}, "SPANISH FORT, AL": {"lat": 30.6749, "lng": -87.9153}, "BAY MINETTE, AL": {"lat": 30.8829, "lng": -87.773}, "HUNTSVILLE, AL": {"lat": 34.7304, "lng": -86.5861}, "MADISON, AL": {"lat": 34.6993, "lng": -86.7483}, "DECATUR, AL": {"lat": 34.6059, "lng": -86.9833}, "ATHENS, AL": {"lat": 34.8029, "lng": -86.9717}, "BIRMINGHAM, AL": {"lat": 33.5186, "lng": -86.8104}, "ATLANTA, GA": {"lat": 33.749, "lng": -84.388}, "MARIETTA, GA": {"lat": 33.9526, "lng": -84.5499}, "ALPHARETTA, GA": {"lat": 34.0754, "lng": -84.2941}, "ROSWELL, GA": {"lat": 34.0232, "lng": -84.3616}, "DULUTH, GA": {"lat": 34.0029, "lng": -84.1446}, "LAWRENCEVILLE, GA": {"lat": 33.9562, "lng": -83.988}, "SUWANEE, GA": {"lat": 34.052, "lng": -84.072}, "CUMMING, GA": {"lat": 34.2073, "lng": -84.1402}, "STONE MOUNTAIN, GA": {"lat": 33.8082, "lng": -84.1702}, "SANDY SPRINGS, GA": {"lat": 33.9351, "lng": -84.3609}, "MACON, GA": {"lat": 32.8407, "lng": -83.6324}, "PERRY, GA": {"lat": 32.4578, "lng": -83.7432}, "NASHVILLE, TN": {"lat": 36.1627, "lng": -86.7816}, "FRANKLIN, TN": {"lat": 35.9251, "lng": -86.8689}, "BRENTWOOD, TN": {"lat": 36.0331, "lng": -86.7828}, "MURFREESBORO, TN": {"lat": 35.8456, "lng": -86.3903}, "HENDERSONVILLE, TN": {"lat": 36.3048, "lng": -86.62}, "MOUNT JULIET, TN": {"lat": 36.2, "lng": -86.5186}, "LEBANON, TN": {"lat": 36.2081, "lng": -86.2911}, "KNOXVILLE, TN": {"lat": 35.9606, "lng": -83.9207}, "CHATTANOOGA, TN": {"lat": 35.0456, "lng": -85.3097}, "MEMPHIS, TN": {"lat": 35.1495, "lng": -90.049}, "GERMANTOWN, TN": {"lat": 35.0868, "lng": -89.8101}, "COLLIERVILLE, TN": {"lat": 35.042, "lng": -89.6645}, "JOHNSON CITY, TN": {"lat": 36.3134, "lng": -82.3535}, "PIGEON FORGE, TN": {"lat": 35.7884, "lng": -83.5543}, "JACKSON, TN": {"lat": 35.6145, "lng": -88.8139}};
 
 function getMarketCoords(query) {
   const q = String(query || "").trim().toUpperCase();
+  if (DYNAMIC_COORDS_CACHE[q]) return DYNAMIC_COORDS_CACHE[q];
   for (const [key, coords] of Object.entries(MARKET_GEO_LOOKUP)) {
     const cityKey = key.split(",")[0].trim();
     if (q === key || q === cityKey || q.includes(cityKey) || key.includes(q)) {
@@ -477,6 +479,84 @@ function App(){
   const [sortBy,setSortBy]=useState("score");
   const [open,setOpen]=useState({});
   const [showSuggest,setShowSuggest]=useState(false);
+  const [liveMatches,setLiveMatches]=useState([]);
+  const geoAbortRef = useRef(null);
+
+  // Live Geocoding for EVERY single US town, village, and ZIP code (30,000+ places)
+  useEffect(()=>{
+    const q = (market||"").trim();
+    if (q.length < 3) { setLiveMatches([]); return; }
+    
+    // Clear previous pending request
+    if (geoAbortRef.current) geoAbortRef.current.abort();
+    const controller = new AbortController();
+    geoAbortRef.current = controller;
+
+    const timer = setTimeout(async ()=>{
+      try {
+        // Check if 5-digit ZIP
+        if (/^\d{5}$/.test(q)) {
+          const res = await fetch(`https://api.zippopotam.us/us/${q}`, { signal: controller.signal });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.places && data.places[0]) {
+              const p = data.places[0];
+              const cName = `${p['place name'].toUpperCase()}, ${p['state abbreviation'].toUpperCase()}`;
+              DYNAMIC_COORDS_CACHE[cName] = { lat: Number(p.latitude), lng: Number(p.longitude) };
+              setLiveMatches([{
+                c: cName,
+                sub: `${p['place name']}, ${p.state} · ZIP ${q}`,
+                lat: Number(p.latitude),
+                lng: Number(p.longitude),
+                source: "ZIP CODE"
+              }]);
+            }
+          }
+          return;
+        }
+
+        // Live OpenStreetMap Nominatim search for any US town/city
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&countrycodes=us&addressdetails=1&limit=5`, {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+          const items = await res.json();
+          const parsed = items.map(it => {
+            const addr = it.address || {};
+            const city = (addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || it.name || "").toUpperCase();
+            const state = (addr.state || "").toUpperCase();
+            const stateCode = (addr['ISO3166-2-lvl4'] ? addr['ISO3166-2-lvl4'].replace('US-', '') : state.slice(0, 2)).toUpperCase();
+            const county = addr.county || "";
+            if (!city || !stateCode) return null;
+            const cName = `${city}, ${stateCode}`;
+            const lat = Number(it.lat);
+            const lng = Number(it.lon);
+            DYNAMIC_COORDS_CACHE[cName] = { lat, lng };
+            return {
+              c: cName,
+              sub: [county, state].filter(Boolean).join(" · ") || it.display_name,
+              lat,
+              lng,
+              source: "LIVE GEO"
+            };
+          }).filter(Boolean);
+
+          // Deduplicate
+          const seen = new Set();
+          const unique = [];
+          for (const p of parsed) {
+            if (!seen.has(p.c)) { seen.add(p.c); unique.push(p); }
+          }
+          setLiveMatches(unique);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') setLiveMatches([]);
+      }
+    }, 200);
+
+    return () => { clearTimeout(timer); controller.abort(); };
+  },[market]);
   const [planLoading,setPlanLoading]=useState({});
   const [showScoring,setShowScoring]=useState(false);
   const [showModel,setShowModel]=useState(false);
@@ -685,25 +765,34 @@ function App(){
             
             {showSuggest && market.trim().length > 0 && (()=>{
               const q = market.trim().toUpperCase();
-              const matches = CITIES_DB.filter(item => {
+              const localMatches = CITIES_DB.filter(item => {
                 if (item.c.toUpperCase().includes(q)) return true;
                 if (item.sub.toUpperCase().includes(q)) return true;
                 if (item.zips && item.zips.some(z => z.startsWith(q))) return true;
                 return false;
-              }).slice(0, 6);
+              });
 
-              if (!matches.length) return null;
+              // Merge local instant index with live geocoded results
+              const seen = new Set(localMatches.map(m => m.c));
+              const extra = liveMatches.filter(m => !seen.has(m.c));
+              const combined = [...localMatches, ...extra].slice(0, 7);
+
+              if (!combined.length) return null;
 
               return <div style={{
                 position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:60,
                 background:"var(--panel2)",border:"1px solid var(--line2)",borderRadius:4,
                 boxShadow:"0 10px 25px rgba(0,0,0,0.6)",overflow:"hidden"
               }}>
-                {matches.map((m,idx)=>
-                  <div key={m.c} 
-                    onMouseDown={()=>{setMarket(m.c);setShowSuggest(false);}}
+                {combined.map((m,idx)=>
+                  <div key={m.c + "_" + idx} 
+                    onMouseDown={()=>{
+                      setMarket(m.c);
+                      if (m.lat && m.lng) DYNAMIC_COORDS_CACHE[m.c] = { lat: m.lat, lng: m.lng };
+                      setShowSuggest(false);
+                    }}
                     style={{
-                      padding:"9px 12px",cursor:"pointer",borderBottom:idx<matches.length-1?"1px solid var(--line)":"none",
+                      padding:"9px 12px",cursor:"pointer",borderBottom:idx<combined.length-1?"1px solid var(--line)":"none",
                       display:"flex",flexDirection:"column",gap:2,background:"transparent",transition:"background .15s"
                     }}
                     onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,0.08)"}
@@ -711,7 +800,9 @@ function App(){
                   >
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span className="mono" style={{color:"var(--cyan)",fontWeight:700,fontSize:13}}>{m.c}</span>
-                      <span className="chip" style={{fontSize:9,marginLeft:"auto",borderColor:"var(--line2)",color:"var(--mut)"}}>AUTO-MATCH</span>
+                      <span className="chip" style={{fontSize:9,marginLeft:"auto",borderColor:m.source==="LIVE GEO"?"var(--grn)":"var(--line2)",color:m.source==="LIVE GEO"?"var(--grn)":"var(--mut)"}}>
+                        {m.source || "AUTO-MATCH"}
+                      </span>
                     </div>
                     <div className="mono" style={{color:"var(--mut)",fontSize:10.5}}>{m.sub}</div>
                   </div>
