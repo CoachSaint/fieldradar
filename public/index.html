@@ -538,7 +538,7 @@ function App(){
   const weightSum=assump.wLead+assump.wCPL+assump.wROI+assump.wHome;
   const anyDemo=events.some(e=>e.data==="demo");
 
-                async function onScout(forceDemo){
+                  async function onScout(forceDemo){
     const q = market.trim();
     if(!q){setError("Enter a market first — city + state or a ZIP.");return;}
     setLoading(true);setError("");
@@ -862,11 +862,46 @@ function App(){
               {ev.rules&&<div className="mono" style={{marginTop:8,fontSize:11,color:"var(--dim)"}}>
                 <b style={{color:"var(--mut)"}}>RULES:</b> {ev.rules}
               </div>}
-              {ev.appUrl&&<div style={{marginTop:10}}>
-                <a href={ev.appUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-hot" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:5}}>
-                  ↗ OPEN VENDOR APPLICATION / PACKET
+              
+              {/* Bulletproof Multi-Action Vendor Toolbar */}
+              <div style={{marginTop:12,paddingTop:10,borderTop:"1px solid var(--line)",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                {ev.appUrl && (
+                  <a href={ev.appUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-hot" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:5}}>
+                    ↗ OPEN OFFICIAL VENDOR PORTAL
+                  </a>
+                )}
+                
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(ev.name + " " + (ev.city||"") + " vendor application exhibitor packet form")}`}
+                   target="_blank" rel="noreferrer" className="btn btn-sm btn-cyan" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:5}}
+                   title="1-click live search for the latest 2026/2027 PDF vendor packet or application form">
+                  ⚡ 1-CLICK VENDOR FORM (LIVE SEARCH)
                 </a>
-              </div>}
+
+                {(()=>{
+                  const contact = ev.orgContact || "";
+                  const emailMatch = contact.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                  const phoneMatch = contact.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+                  
+                  return <>
+                    {emailMatch && (
+                      <a href={`mailto:${emailMatch[0]}?subject=${encodeURIComponent("Vendor Booth Inquiry — " + ev.name)}&body=${encodeURIComponent("Hello,
+
+We are interested in securing a vendor booth for " + ev.name + " (" + ev.city + "). Could you please send over the latest exhibitor packet, booth pricing, and application deadline?
+
+Thank you!")}`}
+                         className="btn btn-sm" style={{textDecoration:"none",borderColor:"var(--line2)",color:"var(--ink)"}}>
+                        ✉ EMAIL ORGANIZER
+                      </a>
+                    )}
+                    {phoneMatch && (
+                      <a href={`tel:${phoneMatch[0].replace(/[^0-9]/g, '')}`}
+                         className="btn btn-sm" style={{textDecoration:"none",borderColor:"var(--line2)",color:"var(--ink)"}}>
+                        📞 CALL: {phoneMatch[0]}
+                      </a>
+                    )}
+                  </>;
+                })()}
+              </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
               <Num label="ATTENDANCE (EXP)" value={ev.att} onChange={v=>patch(ev.id,{att:num(v),lo:Math.round(num(v)*0.8),hi:Math.round(num(v)*1.2)})}/>
