@@ -114,8 +114,8 @@ const P0_SEED_EVENTS = [{"id": "al-gulf-01", "name": "53rd Annual National Shrim
 
 const EVENT_TYPES = ["Home Show","Farmers Market","County Fair/Festival","Community/HOA Yard Sale","Car/Boat/Rod Show","Craft/Artisan Fair","Swap Meet/Flea Market","B2B & Networking Expo","Trade/Builder Event","Sports/Family Event","Outdoor/Lifestyle Expo","Community Event"];
 /* Defaults ported from GA_Field_Events_Scoring_Model.xlsx → Inputs */
-const DEFAULT_A = { jobValue:19500, engagement:0.06, qualified:0.55, capture:0.55, appt:0.40, close:0.20,
-  targetLeads:60, targetCPL:120, targetROI:8, wLead:0.25, wCPL:0.35, wROI:0.30, wHome:0.10, strongAt:75, condAt:60 };
+const DEFAULT_A = { jobValue:14900, engagement:0.06, qualified:0.55, capture:0.55, appt:0.50, close:0.30,
+  targetLeads:45, targetCPL:75, targetROI:6, wLead:0.25, wCPL:0.35, wROI:0.30, wHome:0.10, strongAt:75, condAt:60 };
 const KEY = "fieldradar-v1";
 const VLABEL = { "Strongly Recommended":"PRIME TARGET", "Conditional":"WATCHLIST", "Not Recommended":"PASS" };
 
@@ -139,19 +139,48 @@ function clamp01(n){return Math.max(0,Math.min(1,n));}
 function computeEvent(ev,A){
   const att=num(ev.att), lo=num(ev.lo,att*0.8), hi=num(ev.hi,att*1.2);
   const ho=clamp01(num(ev.ho,0.5));
-  const f=ho*A.engagement*A.qualified*A.capture;
-  const leads=att*f, leadsLo=lo*f, leadsHi=hi*f;
-  const cost=num(ev.booth)+num(ev.spons)+num(ev.staff)+num(ev.travel)+num(ev.other);
-  const cpl=leads>0&&cost>0?cost/leads:(cost===0?0:null);
-  const revenue=leads*A.appt*A.close*A.jobValue;
-  const roi=cost>0?revenue/cost:null;
-  const leadScore=Math.min(1,leads/A.targetLeads)*100;
-  const cplScore=leads<=0?0:(cost===0?100:Math.min(1,A.targetCPL/cpl)*100);
-  const roiScore=cost===0?(leads>0?100:0):Math.min(1,roi/A.targetROI)*100;
-  const hoScore=ho*100;
-  const score=A.wLead*leadScore+A.wCPL*cplScore+A.wROI*roiScore+A.wHome*hoScore;
-  const verdict=score>=A.strongAt?"Strongly Recommended":score>=A.condAt?"Conditional":"Not Recommended";
-  return {leads,leadsLo,leadsHi,cost,cpl,revenue,roi,leadScore,cplScore,roiScore,hoScore,score,verdict};
+  
+  // Calculate event duration in days
+  let days = 1;
+  if (ev.sd && ev.ed) {
+    try {
+      const d1 = new Date(ev.sd).getTime();
+      const d2 = new Date(ev.ed).getTime();
+      if (!isNaN(d1) && !isNaN(d2) && d2 >= d1) {
+        days = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+      }
+    } catch(e) { days = 1; }
+  }
+
+  // Realistic Physical Booth Capacity (diminishing returns prevents impossible 25,000 lead calculations)
+  const dailyCapacity = 35; // Maximum realistic qualified captures per day per booth
+  const baseCap = days * dailyCapacity;
+  const f = ho * A.engagement * A.qualified * A.capture;
+  const rawLeads = att * f;
+
+  let leads = rawLeads;
+  if (rawLeads > baseCap) {
+    leads = Math.round(baseCap + (baseCap * 0.4 * Math.log10(1 + (rawLeads - baseCap) / baseCap)));
+  } else {
+    leads = Math.round(rawLeads);
+  }
+
+  const leadsLo = Math.round(Math.max(0, leads * 0.75));
+  const leadsHi = Math.round(leads * 1.25);
+  const cost = num(ev.booth)+num(ev.spons)+num(ev.staff)+num(ev.travel)+num(ev.other);
+  const cpl = leads>0&&cost>0?cost/leads:(cost===0?0:null);
+  
+  // Revenue = Leads * Appointment Set (50%) * Close (30%) * Avg Ticket ($14,900)
+  const revenue = Math.round(leads * A.appt * A.close * A.jobValue);
+  const roi = cost>0?revenue/cost:null;
+  
+  const leadScore = Math.min(1, leads/A.targetLeads)*100;
+  const cplScore = leads<=0?0:(cost===0?100:Math.min(1,A.targetCPL/(cpl||1))*100);
+  const roiScore = cost===0?(leads>0?100:0):Math.min(1,(roi||0)/A.targetROI)*100;
+  const hoScore = ho*100;
+  const score = A.wLead*leadScore+A.wCPL*cplScore+A.wROI*roiScore+A.wHome*hoScore;
+  const verdict = score>=A.strongAt?"Strongly Recommended":score>=A.condAt?"Conditional":"Not Recommended";
+  return {leads,leadsLo,leadsHi,cost,cpl,revenue,roi,leadScore,cplScore,roiScore,hoScore,score,verdict,days};
 }
 
 /* ============ formatting ============ */
