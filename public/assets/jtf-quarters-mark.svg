@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-labelledby="t d">
+  <title id="t">JTF Software Solutions mark</title>
+  <desc id="d">Four lozenges, separated by an even seam, composing a lozenge of exactly their own proportion.</desc>
+  <!-- Concept A — QUARTERS. Mark only, primary colourway (for cream/ivory surfaces).
+       Construction: quarter half-diagonal 20.6; quarter centres 23.4 from (50,50); seam 3.96.
+       Body occupies x6-94, y6-94.
+       Reversed colourway: crimson quarters -> crimson-400 #C33A4B, walnut quarters -> cream-050 #F7F1E7.
+       Single colour: set all four to one ink.
+       Minimum size 26 px (below that the 3.96-unit seams fall under one CSS pixel and the mark
+       closes into a solid lozenge). A 16 px favicon requires a dedicated cut with the seams
+       widened to 8 units. -->
+  <path fill="#6B1626" d="M50 6 L70.6 26.6 L50 47.2 L29.4 26.6 Z"/>
+  <path fill="#241710" d="M26.6 29.4 L47.2 50 L26.6 70.6 L6 50 Z"/>
+  <path fill="#241710" d="M73.4 29.4 L94 50 L73.4 70.6 L52.8 50 Z"/>
+  <path fill="#6B1626" d="M50 52.8 L70.6 73.4 L50 94 L29.4 73.4 Z"/>
+</svg>

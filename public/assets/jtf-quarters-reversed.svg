@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" width="300" height="120" role="img" aria-labelledby="t d">
+  <title id="t">JTF Software Solutions</title>
+  <desc id="d">Quarters mark reversed, with the JTF logotype and the Software Solutions descriptor.</desc>
+  <!-- Concept A — QUARTERS. Reversed lockup, for walnut-900 #1B110B / walnut-950 #120C08 grounds.
+       Crimson quarters are crimson-400 #C33A4B, NOT crimson-700: crimson-700 measures 1.56:1 on
+       walnut-900 and is effectively invisible. crimson-400 measures 3.56:1 and clears the 3:1
+       WCAG threshold for a graphical object. The other pair goes to cream-050 #F7F1E7.
+       The background rect is a preview convenience — STRIP IT when placing on an existing surface.
+       Descriptor text MUST be outlined before external distribution. -->
+  <rect width="300" height="120" fill="#1B110B"/>
+
+  <g transform="translate(16 10)">
+    <path fill="#C33A4B" d="M50 6 L70.6 26.6 L50 47.2 L29.4 26.6 Z"/>
+    <path fill="#F7F1E7" d="M26.6 29.4 L47.2 50 L26.6 70.6 L6 50 Z"/>
+    <path fill="#F7F1E7" d="M73.4 29.4 L94 50 L73.4 70.6 L52.8 50 Z"/>
+    <path fill="#C33A4B" d="M50 52.8 L70.6 73.4 L50 94 L29.4 73.4 Z"/>
+  </g>
+
+  <g transform="translate(140 22) scale(0.6)" fill="#FDFBF7">
+    <path d="M60 0 L60 70 C60 87.5 48.6 100 31 100 C14.5 100 2 89.5 0 73.5 L0 58 C1.6 80 15 85.5 31 85.5 C39.2 85.5 43 79.8 43 69.5 L43 0 Z"/>
+    <path d="M82 0 L158 0 L158 10 L148 16 L128.5 16 L128.5 100 L111.5 100 L111.5 16 L92 16 L82 10 Z"/>
+    <path d="M176 0 L238 0 L238 10 L228 16 L193 16 L193 43 L226 43 L226 51 L218 57 L193 57 L193 100 L176 100 Z"/>
+  </g>
+
+  <text x="141" y="99" fill="#C3A17A"
+        font-family="'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="9.5" font-weight="500" letter-spacing="2.2">SOFTWARE SOLUTIONS</text>
+</svg>

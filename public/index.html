@@ -71,6 +71,7 @@
 
   /* Mobile-First Touch & Layout Optimizations */
   @media (max-width: 640px) {
+    .mobile-hide { display: none !important; }
     body {
       padding-bottom: env(safe-area-inset-bottom, 20px);
     }
@@ -793,6 +794,13 @@ function App(){
           <div style={{fontWeight:700,fontSize:19,letterSpacing:".04em"}}>FIELD<span style={{color:"var(--cyan)"}}>RADAR</span></div>
           <div className="lbl" style={{fontSize:9,marginTop:2}}>EVENT TARGETING TERMINAL</div>
         </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,paddingLeft:12,borderLeft:"1px solid var(--line2)",marginLeft:4}}>
+          <img src="/assets/jtf-quarters-mark.svg" alt="JTF" style={{height:22,width:"auto"}}/>
+          <div className="mobile-hide" style={{lineHeight:1.15}}>
+            <div className="lbl" style={{fontSize:8,color:"var(--dim)",letterSpacing:".12em"}}>POWERED BY</div>
+            <div className="mono" style={{fontSize:10,fontWeight:700,color:"#C3A17A",letterSpacing:".06em"}}>JTF SOFTWARE SOLUTIONS</div>
+          </div>
+        </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
           <button className="chip" onClick={()=>setShowModel(true)} style={{cursor:"pointer",background:"transparent",borderColor:linkChip.c,color:linkChip.c}}>{linkChip.txt}</button>
           <button className="btn btn-sm btn-ghost" onClick={()=>setShowCoverage(true)} aria-label="National Coverage">COVERAGE</button>
@@ -1095,8 +1103,16 @@ function App(){
         </div>
       </div>}
 
-      <footer className="mono" style={{marginTop:36,fontSize:9.5,color:"var(--dim)",letterSpacing:".1em",textAlign:"center"}}>
-        FIELDRADAR · SCORING ENGINE PORTED FROM THE GA FIELD EVENTS MODEL · A JTF SOFTWARE TOOL
+      <footer style={{marginTop:50,marginBottom:30,paddingTop:24,borderTop:"1px solid var(--line)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,textAlign:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center"}}>
+          <img src="/assets/jtf-quarters-reversed.svg" alt="JTF Software Solutions" style={{height:38,width:"auto"}}/>
+        </div>
+        <div className="mono" style={{fontSize:11.5,color:"var(--mut)",letterSpacing:".08em"}}>
+          POWERED BY <b style={{color:"#FDFBF7"}}>JTF SOFTWARE SOLUTIONS</b> · CONTRACTOR INTELLIGENCE & EVENT ENGINE
+        </div>
+        <div className="mono" style={{fontSize:9.5,color:"var(--dim)",letterSpacing:".06em"}}>
+          FIELDRADAR · CONFIDENTIAL & PROPRIETARY · JTF HOME GROUP · ALL RIGHTS RESERVED
+        </div>
       </footer>
     </main>
 
