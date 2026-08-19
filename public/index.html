@@ -884,11 +884,7 @@ function App(){
                   
                   return <>
                     {emailMatch && (
-                      <a href={`mailto:${emailMatch[0]}?subject=${encodeURIComponent("Vendor Booth Inquiry — " + ev.name)}&body=${encodeURIComponent("Hello,
-
-We are interested in securing a vendor booth for " + ev.name + " (" + ev.city + "). Could you please send over the latest exhibitor packet, booth pricing, and application deadline?
-
-Thank you!")}`}
+                      <a href={`mailto:${emailMatch[0]}?subject=${encodeURIComponent("Vendor Booth Inquiry — " + ev.name)}&body=${encodeURIComponent("Hello,\n\nWe are interested in securing a vendor booth for " + ev.name + " (" + (ev.city || "") + "). Could you please send over the latest exhibitor packet, booth pricing, and application deadline?\n\nThank you!")}`}
                          className="btn btn-sm" style={{textDecoration:"none",borderColor:"var(--line2)",color:"var(--ink)"}}>
                         ✉ EMAIL ORGANIZER
                       </a>
