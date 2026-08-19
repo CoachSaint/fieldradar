@@ -795,11 +795,14 @@ function App(){
           <div className="lbl" style={{fontSize:9,marginTop:2}}>EVENT TARGETING TERMINAL</div>
         </div>
         <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" title="Powered by JTF Software Solutions (jtfsoftware.com)"
-           style={{display:"flex",alignItems:"center",gap:8,paddingLeft:12,borderLeft:"1px solid var(--line2)",marginLeft:4,textDecoration:"none"}}>
-          <img src="/assets/jtf-shield.svg" alt="JTF" style={{height:28,width:"auto",filter:"drop-shadow(0 2px 6px rgba(0,0,0,0.6))"}}/>
-          <div className="mobile-hide" style={{lineHeight:1.15}}>
-            <div className="lbl" style={{fontSize:8,color:"var(--dim)",letterSpacing:".12em"}}>POWERED BY</div>
-            <div className="mono" style={{fontSize:10.5,fontWeight:700,color:"var(--ink)",letterSpacing:".06em"}}>JTF SOFTWARE SOLUTIONS</div>
+           style={{display:"flex",alignItems:"center",gap:9,paddingLeft:12,borderLeft:"1px solid var(--line2)",marginLeft:4,textDecoration:"none"}}>
+          <svg width="22" height="22" viewBox="0 0 100 100" aria-hidden="true" focusable="false" style={{flex:"none"}}>
+            <path fill="#F6F4EF" d="M10 65.97 L91.5 25.22 L91.5 35.28 L31.06 65.5 L91.5 65.5 L91.5 76.5 L10 76.5 Z" />
+            <rect x="80.5" y="33" width="11" height="38" fill="#FF3B00" />
+          </svg>
+          <div className="mobile-hide" style={{lineHeight:1.2}}>
+            <div className="lbl" style={{fontSize:8,color:"var(--dim)",letterSpacing:".14em"}}>POWERED BY</div>
+            <div className="mono" style={{fontSize:11,fontWeight:600,color:"#F6F4EF",letterSpacing:".14em",textTransform:"uppercase"}}>JTF SOFTWARE SOLUTIONS</div>
           </div>
         </a>
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
@@ -1104,11 +1107,15 @@ function App(){
         </div>
       </div>}
 
-      <footer style={{marginTop:50,marginBottom:30,paddingTop:24,borderTop:"1px solid var(--line)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,textAlign:"center"}}>
-        <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:12,textDecoration:"none"}}>
-          <img src="/assets/jtf-horizontal.svg" alt="JTF Software Solutions" style={{height:48,width:"auto",filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.6))"}}/>
+      <footer style={{marginTop:50,marginBottom:30,paddingTop:28,borderTop:"1px solid var(--line)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,textAlign:"center"}}>
+        <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:10,textDecoration:"none"}}>
+          <svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true" focusable="false" style={{flex:"none"}}>
+            <path fill="#F6F4EF" d="M10 65.97 L91.5 25.22 L91.5 35.28 L31.06 65.5 L91.5 65.5 L91.5 76.5 L10 76.5 Z" />
+            <rect x="80.5" y="33" width="11" height="38" fill="#FF3B00" />
+          </svg>
+          <span className="mono" style={{fontWeight:600,fontSize:13,color:"#F6F4EF",letterSpacing:".18em",textTransform:"uppercase"}}>JTF SOFTWARE SOLUTIONS</span>
         </a>
-        <div className="mono" style={{fontSize:11.5,color:"var(--mut)",letterSpacing:".08em"}}>
+        <div className="mono" style={{fontSize:11,color:"var(--mut)",letterSpacing:".08em"}}>
           POWERED BY <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" style={{color:"var(--cyan)",fontWeight:700}}>JTF SOFTWARE SOLUTIONS</a> · CONTRACTOR INTELLIGENCE & EVENT ENGINE
         </div>
         <div className="mono" style={{fontSize:9.5,color:"var(--dim)",letterSpacing:".06em"}}>
