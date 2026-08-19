@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>FieldRadar — Event Targeting Terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -68,6 +68,60 @@
   .field label{display:block}
   .field .lbl{display:block;margin-bottom:5px}
   ::selection{background:rgba(34,211,238,.35)}
+
+  /* Mobile-First Touch & Layout Optimizations */
+  @media (max-width: 640px) {
+    body {
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+    .wrap {
+      padding: 0 12px;
+    }
+    /* Prevent iOS auto-zoom on input focus */
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+    .btn {
+      padding: 10px 14px;
+      font-size: 11.5px;
+      min-height: 40px;
+    }
+    .btn-sm {
+      padding: 9px 12px;
+      font-size: 11px;
+      min-height: 38px;
+    }
+    .chip {
+      padding: 4px 8px;
+      font-size: 9.5px;
+    }
+    .drawer > div {
+      width: 100%;
+      padding: 16px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+    }
+    .mobile-scroll-x {
+      overflow-x: auto !important;
+      flex-wrap: nowrap !important;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 6px;
+      margin: 0 -12px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .mobile-scroll-x::-webkit-scrollbar {
+      display: none;
+    }
+    .vendor-action-bar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    .vendor-action-bar a, .vendor-action-bar button {
+      justify-content: center !important;
+      width: 100% !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -955,7 +1009,7 @@ function App(){
               </div>}
               
               {/* Bulletproof Multi-Action Vendor Toolbar */}
-              <div style={{marginTop:12,paddingTop:10,borderTop:"1px solid var(--line)",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+              <div className="vendor-action-bar" style={{marginTop:12,paddingTop:10,borderTop:"1px solid var(--line)",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                 {ev.appUrl && (
                   <a href={ev.appUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-hot" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:5}}>
                     ↗ OPEN OFFICIAL VENDOR PORTAL
