@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FieldRadar — Event Targeting Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#07090F; --panel:#0E1320; --panel2:#0A0F1A; --line:#1E2637; --line2:#2A3550;
+    --ink:#E7ECF5; --mut:#7C8AA5; --dim:#4A5670;
+    --cyan:#22D3EE; --amber:#F5C518; --hot:#FF3D71; --grn:#7FD34E; --org:#F97316; --teal:#0FA3A3; --cold:#274060;
+    --disp:'Chakra Petch',ui-sans-serif,system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+  .bggrid{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(124,138,165,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(124,138,165,.055) 1px,transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:radial-gradient(ellipse 120% 70% at 50% 0%,#000 25%,transparent 80%);
+    mask-image:radial-gradient(ellipse 120% 70% at 50% 0%,#000 25%,transparent 80%)}
+  #root{position:relative;z-index:1}
+  .wrap{max-width:920px;margin:0 auto;padding:0 16px}
+  .mono{font-family:var(--mono)}
+  .lbl{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--mut)}
+  input,select,button,textarea{font-family:inherit}
+  input,select{background:var(--panel2);border:1px solid var(--line2);color:var(--ink);border-radius:4px;padding:10px 10px;font-size:14px;font-weight:600;outline:none;width:100%}
+  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+  input::placeholder{color:var(--dim)}
+  select{appearance:none;background-image:linear-gradient(45deg,transparent 49%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 51%);background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:26px}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);
+    font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    padding:11px 16px;border-radius:4px;cursor:pointer;transition:transform .12s,filter .12s,box-shadow .12s;white-space:nowrap}
+  .btn:hover{filter:brightness(1.15)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:default;transform:none}
+  .btn-hot{background:var(--amber);border-color:var(--amber);color:#0B0E14;box-shadow:4px 4px 0 rgba(245,197,24,.22)}
+  .btn-hot:hover{box-shadow:2px 2px 0 rgba(245,197,24,.3);transform:translate(1px,1px)}
+  .btn-cyan{border-color:rgba(34,211,238,.5);color:var(--cyan);background:rgba(34,211,238,.06)}
+  .btn-ghost{color:var(--mut)}
+  .btn-sm{padding:8px 11px;font-size:11px}
+  .chip{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line2);color:var(--mut);padding:3px 8px;border-radius:3px}
+  .tog{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border-radius:3px;cursor:pointer;border:1px solid var(--line2);background:transparent;color:var(--mut)}
+  .tog.on{border-color:var(--cyan);color:var(--cyan);background:rgba(34,211,238,.08)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+  .sweep{width:26px;height:26px;border-radius:50%;border:1px solid rgba(34,211,238,.35);position:relative;overflow:hidden;flex:none}
+  .sweep::before{content:"";position:absolute;inset:-1px;background:conic-gradient(from 0deg,rgba(34,211,238,.95),rgba(34,211,238,.25) 55deg,transparent 90deg);animation:rot 3.4s linear infinite}
+  .sweep::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 8px rgba(34,211,238,.35)}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{display:inline-block;animation:spin 1s linear infinite}
+  @media (prefers-reduced-motion:reduce){.sweep::before,.spin{animation:none}}
+  .scorebar{position:absolute;left:0;top:0;bottom:0;width:6px}
+  .card{position:relative;overflow:hidden}
+  .glow{text-shadow:0 0 18px currentColor}
+  a{color:var(--cyan)}
+  .drawer{position:fixed;inset:0;z-index:60;background:rgba(5,7,12,.72);display:flex;justify-content:flex-end}
+  .drawer>div{background:var(--panel);border-left:1px solid var(--line2);width:min(430px,100%);height:100%;overflow-y:auto;padding:20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  @media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
+  .field label{display:block}
+  .field .lbl{display:block;margin-bottom:5px}
+  ::selection{background:rgba(34,211,238,.35)}
+</style>
+</head>
+<body>
+<div class="bggrid" aria-hidden="true"></div>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ============ constants ============ */
+const EVENT_TYPES = ["Home Show","Outdoor/Lifestyle Expo","County Fair/Festival","Trade/Builder Event","Sports/Family Event","Community Event"];
+/* Defaults ported from GA_Field_Events_Scoring_Model.xlsx → Inputs */
+const DEFAULT_A = { jobValue:19500, engagement:0.06, qualified:0.55, capture:0.55, appt:0.40, close:0.20,
+  targetLeads:60, targetCPL:120, targetROI:8, wLead:0.25, wCPL:0.35, wROI:0.30, wHome:0.10, strongAt:75, condAt:60 };
+const KEY = "fieldradar-v1";
+const VLABEL = { "Strongly Recommended":"PRIME TARGET", "Conditional":"WATCHLIST", "Not Recommended":"PASS" };
+
+/* ============ score → color ramp (radar reflectivity) ============ */
+const RAMP = [[0,"#274060"],[30,"#0FA3A3"],[52,"#7FD34E"],[68,"#F5C518"],[84,"#F97316"],[94,"#FF3D71"],[100,"#FF3D71"]];
+function hex2rgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function rampColor(s){
+  s=Math.max(0,Math.min(100,s));
+  for(let i=0;i<RAMP.length-1;i++){
+    const [a,ca]=RAMP[i],[b,cb]=RAMP[i+1];
+    if(s>=a&&s<=b){const t=(s-a)/(b-a||1),A=hex2rgb(ca),B=hex2rgb(cb);
+      return "rgb("+A.map((v,j)=>Math.round(v+(B[j]-v)*t)).join(",")+")";}
+  }
+  return RAMP[RAMP.length-1][1];
+}
+const rampCSS = "linear-gradient(90deg,"+RAMP.map(([p,c])=>c+" "+p+"%").join(",")+")";
+
+/* ============ scoring engine (exact workbook math) ============ */
+function num(v,fb=0){const n=Number(v);return Number.isFinite(n)?n:fb;}
+function clamp01(n){return Math.max(0,Math.min(1,n));}
+function computeEvent(ev,A){
+  const att=num(ev.att), lo=num(ev.lo,att*0.8), hi=num(ev.hi,att*1.2);
+  const ho=clamp01(num(ev.ho,0.5));
+  const f=ho*A.engagement*A.qualified*A.capture;
+  const leads=att*f, leadsLo=lo*f, leadsHi=hi*f;
+  const cost=num(ev.booth)+num(ev.spons)+num(ev.staff)+num(ev.travel)+num(ev.other);
+  const cpl=leads>0&&cost>0?cost/leads:(cost===0?0:null);
+  const revenue=leads*A.appt*A.close*A.jobValue;
+  const roi=cost>0?revenue/cost:null;
+  const leadScore=Math.min(1,leads/A.targetLeads)*100;
+  const cplScore=leads<=0?0:(cost===0?100:Math.min(1,A.targetCPL/cpl)*100);
+  const roiScore=cost===0?(leads>0?100:0):Math.min(1,roi/A.targetROI)*100;
+  const hoScore=ho*100;
+  const score=A.wLead*leadScore+A.wCPL*cplScore+A.wROI*roiScore+A.wHome*hoScore;
+  const verdict=score>=A.strongAt?"Strongly Recommended":score>=A.condAt?"Conditional":"Not Recommended";
+  return {leads,leadsLo,leadsHi,cost,cpl,revenue,roi,leadScore,cplScore,roiScore,hoScore,score,verdict};
+}
+
+/* ============ formatting ============ */
+const fmt$=n=>n==null?"—":"$"+Math.round(n).toLocaleString();
+const fmtK=n=>n==null?"—":(n>=1000?"$"+(Math.round(n/100)/10).toLocaleString()+"K":"$"+Math.round(n));
+const fmtN=(n,d=0)=>n==null?"—":Number(n).toLocaleString(undefined,{maximumFractionDigits:d});
+const fmtX=n=>n==null?"—":(n>=10?Math.round(n)+"x":n.toFixed(1)+"x");
+const fmtDate=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric"}).toUpperCase();};
+const fmtDateY=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}).toUpperCase();};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const slug=s=>(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"events";
+
+/* ============ storage adapter: Claude artifact storage → localStorage → memory ============ */
+const MEM={};
+const store={
+  async get(k){
+    if(typeof window!=="undefined"&&window.storage){try{const r=await window.storage.get(k);return r?r.value:null;}catch(e){return null;}}
+    try{return localStorage.getItem(k);}catch(e){return MEM[k]??null;}
+  },
+  async set(k,v){
+    if(typeof window!=="undefined"&&window.storage){try{await window.storage.set(k,v);return;}catch(e){}}
+    try{localStorage.setItem(k,v);return;}catch(e){MEM[k]=v;}
+  }
+};
+
+/* ============ model link ============ */
+function parseJSONText(text){
+  const clean=String(text||"").replace(/```json|```/g,"").trim();
+  const arr=clean.match(/\[[\s\S]*\]/); const obj=clean.match(/\{[\s\S]*\}/);
+  return JSON.parse(arr?arr[0]:obj?obj[0]:clean);
+}
+async function callModel(prompt,useSearch,cfg){
+  cfg=cfg||{};
+  if(cfg.provider==="openrouter"){
+    if(!cfg.orKey)throw new Error("NO_KEY");
+    const body={model:cfg.orModel||"anthropic/claude-sonnet-4.5",max_tokens:1000,
+      messages:[{role:"user",content:prompt}]};
+    if(useSearch)body.plugins=[{id:"web"}];
+    const res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.orKey,"X-Title":"FieldRadar"},
+      body:JSON.stringify(body)});
+    if(!res.ok)throw new Error("MODEL_"+res.status);
+    const data=await res.json();
+    const msg=data.choices&&data.choices[0]&&data.choices[0].message;
+    if(!msg)throw new Error("SHAPE");
+    return typeof msg.content==="string"?msg.content:(msg.content||[]).map(p=>(p&&p.text)||"").join("\n");
+  }
+  const headers={"Content-Type":"application/json"};
+  if(cfg.apiKey){
+    headers["x-api-key"]=cfg.apiKey;
+    headers["anthropic-version"]="2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"]="true";
+  }
+  const body={model:cfg.model||"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]};
+  if(useSearch)body.tools=[{type:"web_search_20250305",name:"web_search"}];
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers,body:JSON.stringify(body)});
+  if(!res.ok)throw new Error("MODEL_"+res.status);
+  const data=await res.json();
+  return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+}
+async function scoutLive({market,radius,months,types,cfg}){
+  const start=new Date(),end=new Date();end.setMonth(end.getMonth()+months);
+  const iso=d=>d.toISOString().slice(0,10);
+  const prompt=
+`You scout field-marketing opportunities for a residential roofing & exteriors company.
+Market center: ${market}. Radius: ${radius} miles. Window: ${iso(start)} to ${iso(end)}.
+Wanted event types: ${types.join("; ")}.
+Use web search to find REAL upcoming consumer events inside that radius and window where a vendor booth is realistic: home & garden shows, county fairs, festivals, outdoor/lifestyle expos, builder/trade events, sports/family events, community events.
+Respond with ONLY a JSON array (no prose, no markdown). Max 7 events, strongest lead-gen fit first. Each object exactly:
+{"n":"name","t":"one of: ${EVENT_TYPES.join(" | ")}","c":"city","s":"ST","v":"venue","sd":"YYYY-MM-DD","ed":"YYYY-MM-DD","mi":25,"att":12000,"lo":9000,"hi":15000,"ho":0.6,"bc":900,"u":"source url","x":"one-line audience/booth note"}
+Estimate att/lo/hi (attendance), ho (homeowner share 0-1) and bc (typical 10x10 booth cost, USD) from what you find; use sensible estimates when unstated. Dates must fall inside the window. Keep "x" under 15 words.`;
+  const list=parseJSONText(await callModel(prompt,true,cfg));
+  if(!Array.isArray(list))throw new Error("SHAPE");
+  return list.map(r=>({
+    id:uid(),name:r.n||"Untitled event",type:EVENT_TYPES.includes(r.t)?r.t:"Community Event",
+    city:[r.c,r.s].filter(Boolean).join(", "),venue:r.v||"",sd:r.sd||"",ed:r.ed||r.sd||"",
+    mi:r.mi==null?null:num(r.mi),att:num(r.att,5000),lo:num(r.lo,num(r.att,5000)*0.8),hi:num(r.hi,num(r.att,5000)*1.2),
+    ho:clamp01(num(r.ho,0.55)),booth:num(r.bc,800),spons:0,staff:0,travel:0,other:0,
+    src:r.u||"",note:r.x||"",status:"new",plan:null,data:"scouted"
+  }));
+}
+async function planLive(ev,market,cfg){
+  const prompt=
+`Event: ${ev.name} (${ev.type}) at ${ev.venue||"venue TBD"}, ${ev.city}, ${ev.sd||"date TBD"}. ~${fmtN(ev.att)} attendees, ~${Math.round(num(ev.ho,0.5)*100)}% homeowners. Market: ${market}.
+Company: residential roofing & exteriors. Differentiators: free instant aerial roof measurement + quote, storm-restoration expertise, financing, lifetime workmanship warranty.
+Return ONLY JSON, no markdown:
+{"hook":"the booth offer/hook","booth":"booth concept + must-have props","staff":"staffing plan with headcount","capture":"lead capture mechanics on-site","follow":"first-72-hour follow-up cadence","angle":"local/seasonal angle specific to this market and event type"}
+Each value: 1-2 punchy sentences written for a field team.`;
+  const p=parseJSONText(await callModel(prompt,false,cfg));
+  return {hook:p.hook||"",booth:p.booth||"",staff:p.staff||"",capture:p.capture||"",follow:p.follow||"",angle:p.angle||"",src:"model"};
+}
+
+/* ============ demo mode (clearly-labeled sample data, no model needed) ============ */
+function seeded(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+  return ()=>{h=Math.imul(h^(h>>>15),2246822507);h=Math.imul(h^(h>>>13),3266489909);return ((h^=h>>>16)>>>0)/4294967296;};}
+const DEMO_SPECS=[
+  {t:"Home Show",n:m=>m+" Home & Garden Show",v:"Convention Center",att:[9000,18000],ho:[0.62,0.72],bc:[900,1600]},
+  {t:"County Fair/Festival",n:m=>"County Fair — "+m+" Region",v:"County Fairgrounds",att:[25000,55000],ho:[0.48,0.58],bc:[450,900]},
+  {t:"Outdoor/Lifestyle Expo",n:m=>m+" Outdoor Living Expo",v:"Expo Hall",att:[6000,14000],ho:[0.55,0.65],bc:[700,1200]},
+  {t:"Trade/Builder Event",n:m=>"Regional Builders & Remodelers Showcase",v:"Trade Center",att:[2500,5000],ho:[0.5,0.6],bc:[1000,1800]},
+  {t:"Sports/Family Event",n:m=>m+" Family Sports Weekend",v:"Sports Complex",att:[10000,26000],ho:[0.45,0.55],bc:[350,750]},
+  {t:"Community Event",n:m=>"Downtown "+m+" Fall Festival",v:"Main Street District",att:[4000,9000],ho:[0.5,0.6],bc:[250,550]},
+  {t:"Home Show",n:m=>m+" Spring Remodel & Roofing Expo",v:"Civic Arena",att:[7000,13000],ho:[0.64,0.74],bc:[850,1400]},
+];
+function scoutDemo({market,radius,months,types}){
+  const rnd=seeded(market.toUpperCase()+radius);
+  const city=(market.split(",")[0]||market).trim();
+  const pick=DEMO_SPECS.filter(s=>types.includes(s.t));
+  const list=(pick.length?pick:DEMO_SPECS).slice(0,7);
+  const now=new Date();
+  return list.map((s,i)=>{
+    const lerp=(a,b)=>Math.round(a+(b-a)*rnd());
+    const att=lerp(s.att[0],s.att[1]);
+    const d=new Date(now); d.setDate(d.getDate()+Math.round(10+rnd()*(months*30-14)));
+    const d2=new Date(d); d2.setDate(d2.getDate()+(s.t==="County Fair/Festival"?4:s.t==="Home Show"?2:rnd()>0.5?1:0));
+    const iso=x=>x.toISOString().slice(0,10);
+    return {id:uid(),name:s.n(city),type:s.t,city:market,venue:s.v,sd:iso(d),ed:iso(d2),
+      mi:Math.round(rnd()*radius),att,lo:Math.round(att*0.8),hi:Math.round(att*1.2),
+      ho:Math.round((s.ho[0]+(s.ho[1]-s.ho[0])*rnd())*100)/100,booth:lerp(s.bc[0],s.bc[1]),
+      spons:0,staff:0,travel:0,other:0,src:"",note:"Sample event — demo mode",status:"new",plan:null,data:"demo"};
+  });
+}
+const PLAYBOOK={
+  "Home Show":{hook:"Free 60-second aerial roof scan on a big screen — attendee's real address, live.",booth:"10x10 with a monitor running scans, shingle sample wall, and one 'storm damage vs. wear' display board.",staff:"3 reps: one running scans, two working the aisle with tablets. No sitters.",capture:"Scan requires address + phone to run — the demo IS the capture. QR backup card for walk-bys.",follow:"Text the scan result within 2 hours, call within 24, inspection booked inside 72.",angle:"Homeowners here came to plan projects — lead with the free measurement, not a discount."},
+  "County Fair/Festival":{hook:"'Spin to Win' wheel — every spin needs an entry card, top prize is a free roof tune-up.",booth:"High-energy corner spot: wheel, yard-sign giveaway, kids' hard-hat photo prop.",staff:"4 in branded tees rotating — fairs run long. One dedicated entry-card runner.",capture:"Paper entry cards + one tablet. Cards get keyed nightly, no exceptions.",follow:"Winners announced by text day 1 post-fair — every entrant gets the 'free inspection' consolation offer.",angle:"Volume play: low homeowner %, huge crowd. Work quantity, qualify hard on the follow-up call."},
+  "Outdoor/Lifestyle Expo":{hook:"Free 'storm-readiness grade' for their home — A through F card they keep.",booth:"Clean outdoor-living look: pergola frame, before/after storm boards, drone on display.",staff:"2-3 consultative reps — this crowd browses, don't pounce.",capture:"Grade card requires address; tablet form auto-texts them their grade.",follow:"Grade emailed same day with 3 specific notes on their roofline; call day 2.",angle:"Tie roofing to outdoor investment: 'protect what you're building back there.'"},
+  "Trade/Builder Event":{hook:"Partner pitch: white-label roof measurements and overflow install capacity for builders.",booth:"B2B setup — case-study one-pagers, sample report binder, calendar QR for 15-min meetings.",staff:"Send closers: 2 senior people who can talk margin and turnaround, not swag.",capture:"Business-card scan + meeting booked on the spot. A booked calendar slot is the win.",follow:"Same-day LinkedIn + email with the sample report; proposal inside the week.",angle:"Fewer, bigger fish — one builder relationship outearns a hundred fair leads."},
+  "Sports/Family Event":{hook:"'Toughest Roof in Town' bracket — enter your address, top seed wins a free upgrade.",booth:"Sporty and loud: cornhole with branded boards, jersey giveaway, big score-style LED counter.",staff:"3 high-energy reps; one owns the game line, two capture.",capture:"Game entry = address + mobile. Keep the line moving under 90 seconds.",follow:"Bracket 'results' text day 2 doubles as the inspection offer.",angle:"Parents standing around between games are the easiest 5-minute conversations you'll get all year."},
+  "Community Event":{hook:"'Neighborhood Roof Watch' — free post-storm checkups for the whole street when 3 neighbors sign.",booth:"Local-first: town map with pins of completed jobs nearby, cookies, kid stickers.",staff:"2 reps, ideally ones who live in or near the zip.",capture:"Street-team sheet — capture by block, not by person. Clusters convert.",follow:"Door-hanger drop on captured blocks within the week, then the group-signup call.",angle:"Small crowd, high trust — this is a referral seeding op, not a lead volume op."},
+};
+function planDemo(ev,market){
+  const p=PLAYBOOK[ev.type]||PLAYBOOK["Community Event"];
+  return {...p,angle:p.angle+" (Playbook template — connect a model for a plan tuned to "+(market||"this market")+".)",src:"template"};
+}
+
+/* ============ device export ============ */
+function download(filename,text,mime){
+  try{const blob=new Blob([text],{type:mime});const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},150);
+  }catch(e){console.error("download failed",e);}
+}
+const csvCell=v=>{const s=v==null?"":String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+function toCSV(events,A,marketLabel){
+  const head=["Event Name","Region","City","Venue","Start Date","End Date","Event Type",
+    "Attendance Low","Attendance Expected","Attendance High","% Homeowners","% Homes 10+ yrs",
+    "Engagement %","Qualified %","Lead Capture %","Leads Low","Leads Expected","Leads High",
+    "Booth Cost","Sponsorship/Add-ons","Staffing Cost","Travel/Lodging","Other Cost","Total Cost",
+    "CPL (Expected)","Appt Set Rate","Close Rate","Avg Job Value","Revenue (Expected)","ROI (Rev/Cost)",
+    "Benchmark CPL","Lead Score","CPL Score","ROI Score","Homeowner Score","Total Score (0-100)","Verdict",
+    "Status","Distance (mi)","Source","Data","Game Plan"];
+  const rows=events.map(ev=>{
+    const m=computeEvent(ev,A);
+    const plan=ev.plan?["Hook: "+ev.plan.hook,"Booth: "+ev.plan.booth,"Staffing: "+ev.plan.staff,
+      "Capture: "+ev.plan.capture,"Follow-up: "+ev.plan.follow,"Angle: "+ev.plan.angle].join(" | "):"";
+    return [ev.name,marketLabel,ev.city,ev.venue,ev.sd,ev.ed,ev.type,
+      Math.round(num(ev.lo,ev.att*0.8)),Math.round(num(ev.att)),Math.round(num(ev.hi,ev.att*1.2)),
+      num(ev.ho,0.5),"",A.engagement,A.qualified,A.capture,
+      m.leadsLo.toFixed(1),m.leads.toFixed(1),m.leadsHi.toFixed(1),
+      num(ev.booth),num(ev.spons),num(ev.staff),num(ev.travel),num(ev.other),m.cost,
+      m.cpl==null?"":m.cpl.toFixed(2),A.appt,A.close,A.jobValue,
+      Math.round(m.revenue),m.roi==null?"":m.roi.toFixed(2),"",
+      m.leadScore.toFixed(1),m.cplScore.toFixed(1),m.roiScore.toFixed(1),m.hoScore.toFixed(1),
+      m.score.toFixed(1),m.verdict,ev.status||"new",ev.mi==null?"":ev.mi,ev.src||"",ev.data||"",plan];
+  });
+  return [head,...rows].map(r=>r.map(csvCell).join(",")).join("\r\n");
+}
+const icsEsc=s=>String(s||"").replace(/\\/g,"\\\\").replace(/[,;]/g,m=>"\\"+m).replace(/\n/g,"\\n");
+function toICS(events,A){
+  const stamp=new Date().toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+  const ve=events.filter(e=>e.sd).map(ev=>{
+    const m=computeEvent(ev,A);
+    const s=ev.sd.replace(/-/g,"");
+    const endD=new Date((ev.ed||ev.sd)+"T12:00:00");endD.setDate(endD.getDate()+1);
+    const e=endD.toISOString().slice(0,10).replace(/-/g,"");
+    const desc="Score "+m.score.toFixed(0)+" — "+m.verdict+". ~"+m.leads.toFixed(0)+" leads, CPL "+fmt$(m.cpl)+", ROI "+fmtX(m.roi)+"."+(ev.plan?" Hook: "+ev.plan.hook:"");
+    return ["BEGIN:VEVENT","UID:"+ev.id+"@fieldradar","DTSTAMP:"+stamp,
+      "DTSTART;VALUE=DATE:"+s,"DTEND;VALUE=DATE:"+e,
+      "SUMMARY:"+icsEsc("Booth: "+ev.name),
+      "LOCATION:"+icsEsc([ev.venue,ev.city].filter(Boolean).join(", ")),
+      "DESCRIPTION:"+icsEsc(desc),"END:VEVENT"].join("\r\n");
+  }).join("\r\n");
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//FieldRadar//Event Targeting//EN",ve,"END:VCALENDAR"].join("\r\n");
+}
+
+/* ============ UI atoms ============ */
+function ScoreNum({score}){
+  const c=rampColor(score);
+  return <div className="mono glow" style={{color:c,fontSize:44,fontWeight:700,lineHeight:1,letterSpacing:"-0.02em",minWidth:66,textAlign:"right"}}>{Math.round(score)}</div>;
+}
+function VChip({verdict}){
+  const c=verdict==="Strongly Recommended"?"var(--hot)":verdict==="Conditional"?"var(--amber)":"var(--dim)";
+  return <span className="chip" style={{borderColor:c,color:c,background:"color-mix(in srgb, "+(verdict==="Strongly Recommended"?"#FF3D71":verdict==="Conditional"?"#F5C518":"#4A5670")+" 10%, transparent)"}}>{VLABEL[verdict]}</span>;
+}
+function Stat({label,value,color}){
+  return <div style={{minWidth:0}}>
+    <div className="lbl">{label}</div>
+    <div className="mono" style={{fontSize:16,fontWeight:700,color:color||"var(--ink)",marginTop:2,whiteSpace:"nowrap"}}>{value}</div>
+  </div>;
+}
+function Num({label,value,onChange,prefix,suffix,step}){
+  return <div className="field"><label>
+    <span className="lbl">{label}</span>
+    <div style={{display:"flex",alignItems:"center",gap:4}}>
+      {prefix&&<span className="mono" style={{color:"var(--dim)",fontSize:13}}>{prefix}</span>}
+      <input className="mono" type="number" step={step||1} value={value} onChange={e=>onChange(e.target.value)} style={{fontSize:14}}/>
+      {suffix&&<span className="mono" style={{color:"var(--dim)",fontSize:13}}>{suffix}</span>}
+    </div>
+  </label></div>;
+}
+function SectionLabel({children}){return <div className="lbl" style={{color:"var(--cyan)",margin:"18px 0 10px"}}>{children}</div>;}
+
+/* ============ APP ============ */
+function App(){
+  const [assump,setAssump]=useState(DEFAULT_A);
+  const [market,setMarket]=useState("");
+  const [radius,setRadius]=useState(50);
+  const [months,setMonths]=useState(6);
+  const [types,setTypes]=useState(EVENT_TYPES);
+  const [events,setEvents]=useState([]);
+  const [lastMarket,setLastMarket]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [sortBy,setSortBy]=useState("score");
+  const [open,setOpen]=useState({});
+  const [planLoading,setPlanLoading]=useState({});
+  const [showScoring,setShowScoring]=useState(false);
+  const [showModel,setShowModel]=useState(false);
+  const [cfg,setCfg]=useState({provider:"anthropic",apiKey:"",model:"claude-sonnet-4-6",orKey:"",orModel:"anthropic/claude-sonnet-4.5",demo:false});
+  const [orList,setOrList]=useState([]);
+  const [linkState,setLinkState]=useState("untested"); // untested | ok | fail
+  const loaded=useRef(false);
+
+  useEffect(()=>{(async()=>{
+    try{const raw=await store.get(KEY);
+      if(raw){const s=JSON.parse(raw);
+        if(s.assump)setAssump({...DEFAULT_A,...s.assump});
+        if(s.events)setEvents(s.events);
+        if(s.market)setMarket(s.market);
+        if(s.lastMarket)setLastMarket(s.lastMarket);
+        if(s.radius)setRadius(s.radius);
+        if(s.months)setMonths(s.months);
+        if(s.cfg)setCfg(c=>({...c,...s.cfg}));
+      }}catch(e){}
+    loaded.current=true;
+  })();},[]);
+  useEffect(()=>{
+    if(!loaded.current)return;
+    const t=setTimeout(()=>{store.set(KEY,JSON.stringify({assump,events,market,lastMarket,radius,months,cfg}));},400);
+    return()=>clearTimeout(t);
+  },[assump,events,market,lastMarket,radius,months,cfg]);
+
+  const scored=useMemo(()=>{
+    const list=events.map(ev=>({ev,m:computeEvent(ev,assump)}));
+    const by={score:(a,b)=>b.m.score-a.m.score,
+      date:(a,b)=>(a.ev.sd||"9999").localeCompare(b.ev.sd||"9999"),
+      cpl:(a,b)=>((a.m.cpl==null?1e9:a.m.cpl)-(b.m.cpl==null?1e9:b.m.cpl))}[sortBy];
+    return [...list].sort(by);
+  },[events,assump,sortBy]);
+  const totals=useMemo(()=>{
+    const act=scored.filter(({ev})=>ev.status!=="skip");
+    return {count:events.length,
+      prime:scored.filter(({m})=>m.verdict==="Strongly Recommended").length,
+      leads:act.reduce((s,{m})=>s+m.leads,0),
+      cost:act.reduce((s,{m})=>s+m.cost,0),
+      revenue:act.reduce((s,{m})=>s+m.revenue,0)};
+  },[scored,events]);
+  const weightSum=assump.wLead+assump.wCPL+assump.wROI+assump.wHome;
+  const anyDemo=events.some(e=>e.data==="demo");
+
+  async function onScout(forceDemo){
+    if(!market.trim()){setError("Enter a market first — city + state or a ZIP.");return;}
+    setLoading(true);setError("");
+    const params={market:market.trim(),radius,months,types:types.length?types:EVENT_TYPES};
+    try{
+      let found;
+      if(cfg.demo||forceDemo){found=scoutDemo(params);}
+      else{found=await scoutLive({...params,cfg});setLinkState("ok");}
+      setEvents(found);setLastMarket(market.trim()+" · "+radius+" MI");setOpen({});
+      if(!found.length)setError("No qualifying events in that window. Widen the radius or date range.");
+    }catch(e){
+      setLinkState("fail");
+      setError("NO MODEL LINK — live scouting needs a model. Connect one, or run demo data to see the tool work.");
+    }finally{setLoading(false);}
+  }
+  async function onPlan(id){
+    const ev=events.find(x=>x.id===id);if(!ev)return;
+    setPlanLoading(p=>({...p,[id]:true}));
+    try{
+      let plan;
+      if(cfg.demo){plan=planDemo(ev,lastMarket||market);}
+      else{try{plan=await planLive(ev,lastMarket||market,cfg);setLinkState("ok");}
+        catch(e){plan=planDemo(ev,lastMarket||market);}}
+      setEvents(es=>es.map(x=>x.id===id?{...x,plan}:x));
+      setOpen(o=>({...o,[id]:true}));
+    }finally{setPlanLoading(p=>({...p,[id]:false}));}
+  }
+  async function testLink(){
+    setLinkState("untested");
+    try{await callModel("Reply with exactly: OK",false,cfg);setLinkState("ok");}
+    catch(e){setLinkState("fail");}
+  }
+  async function fetchModels(){
+    try{const r=await fetch("https://openrouter.ai/api/v1/models");const d=await r.json();
+      setOrList((d.data||[]).map(m=>m.id).filter(Boolean).sort().slice(0,400));
+    }catch(e){setOrList([]);}
+  }
+  const patch=(id,d)=>setEvents(es=>es.map(x=>x.id===id?{...x,...d}:x));
+  const setStatus=(id,s)=>patch(id,{status:s});
+  const removeEvent=id=>setEvents(es=>es.filter(x=>x.id!==id));
+  function addManual(){
+    const ev={id:uid(),name:"NEW EVENT",type:"Home Show",city:market||"",venue:"",sd:"",ed:"",
+      mi:null,att:5000,lo:4000,hi:6000,ho:0.55,booth:800,spons:0,staff:0,travel:0,other:0,
+      src:"",note:"Manually added",status:"new",plan:null,data:"manual"};
+    setEvents(es=>[ev,...es]);setOpen(o=>({...o,[ev.id]:true}));
+  }
+  const exportCSV=()=>{if(events.length)download("fieldradar-"+slug(lastMarket||market)+".csv",toCSV(events,assump,lastMarket||market),"text/csv;charset=utf-8");};
+  const exportICS=()=>{
+    const picked=events.filter(e=>e.status==="target"||e.status==="booked");
+    const list=picked.length?picked:events;
+    if(list.length)download("fieldradar-"+slug(lastMarket||market)+".ics",toICS(list,assump),"text/calendar;charset=utf-8");
+  };
+
+  const linkChip = cfg.demo
+    ? {txt:"DEMO MODE",c:"var(--amber)"}
+    : cfg.provider==="openrouter"
+      ? (cfg.orKey
+          ? {txt:linkState==="fail"?"OPENROUTER · DOWN":"OPENROUTER: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
+          : {txt:"OPENROUTER: NO KEY",c:"var(--hot)"})
+      : cfg.apiKey ? {txt:linkState==="fail"?"KEY · LINK DOWN":"CLAUDE: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
+      : {txt:linkState==="ok"?"CLAUDE: LINKED":linkState==="fail"?"NO MODEL LINK":"CLAUDE: AUTO",c:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--cyan)"};
+
+  return <div style={{paddingBottom:110}}>
+    {/* ===== header ===== */}
+    <header style={{borderBottom:"1px solid var(--line)",background:"rgba(7,9,15,.85)",backdropFilter:"blur(6px)",position:"sticky",top:0,zIndex:40}}>
+      <div className="wrap" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px"}}>
+        <div className="sweep" aria-hidden="true"></div>
+        <div style={{lineHeight:1.05,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:19,letterSpacing:".04em"}}>FIELD<span style={{color:"var(--cyan)"}}>RADAR</span></div>
+          <div className="lbl" style={{fontSize:9,marginTop:2}}>EVENT TARGETING TERMINAL</div>
+        </div>
+        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
+          <button className="chip" onClick={()=>setShowModel(true)} style={{cursor:"pointer",background:"transparent",borderColor:linkChip.c,color:linkChip.c}}>{linkChip.txt}</button>
+          <button className="btn btn-sm btn-ghost" onClick={()=>setShowScoring(true)} aria-label="Scoring model">SCORING</button>
+        </div>
+      </div>
+      <div style={{height:2,background:rampCSS,opacity:.85}} aria-hidden="true"></div>
+    </header>
+
+    <main className="wrap" style={{paddingTop:18}}>
+      {/* ===== command console ===== */}
+      <section className="panel" style={{padding:16}}>
+        <div className="lbl" style={{marginBottom:10,color:"var(--cyan)"}}>▸ Scan parameters</div>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <div style={{flex:"1 1 230px"}}>
+            <input className="mono" value={market} onChange={e=>setMarket(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&!loading&&onScout()} placeholder="MARKET — e.g. MACON, GA" aria-label="Market"
+              style={{textTransform:"uppercase",letterSpacing:".04em"}}/>
+          </div>
+          <select className="mono" value={radius} onChange={e=>setRadius(Number(e.target.value))} aria-label="Radius" style={{width:120}}>
+            {[15,25,50,75,100,150].map(r=><option key={r} value={r}>{r} MI</option>)}
+          </select>
+          <select className="mono" value={months} onChange={e=>setMonths(Number(e.target.value))} aria-label="Date window" style={{width:150}}>
+            <option value={2}>60 DAYS</option><option value={3}>90 DAYS</option>
+            <option value={6}>6 MONTHS</option><option value={12}>12 MONTHS</option>
+          </select>
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
+          {EVENT_TYPES.map(t=>{const on=types.includes(t);
+            return <button key={t} className={"tog"+(on?" on":"")}
+              onClick={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}>{t}</button>;})}
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
+          <button className="btn btn-hot" onClick={()=>onScout()} disabled={loading}>
+            {loading?<span className="spin">◌</span>:"◉"} {loading?"SCANNING…":"SCOUT EVENTS"}
+          </button>
+          <button className="btn btn-sm" onClick={addManual}>+ ADD MANUAL</button>
+          <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)",background:"rgba(245,197,24,.08)"}:{}}
+            onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
+          {lastMarket&&<span className="mono" style={{fontSize:11,color:"var(--mut)"}}>LAST SCAN: <b style={{color:"var(--ink)"}}>{lastMarket.toUpperCase()}</b></span>}
+        </div>
+        {error&&<div role="alert" className="mono" style={{marginTop:12,fontSize:12,color:"var(--hot)",fontWeight:600,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+          <span>▲ {error}</span>
+          {error.indexOf("NO MODEL LINK")===0&&<span style={{display:"flex",gap:6}}>
+            <button className="btn btn-sm btn-cyan" onClick={()=>setShowModel(true)}>CONNECT A MODEL</button>
+            <button className="btn btn-sm" onClick={()=>onScout(true)}>RUN DEMO DATA</button>
+          </span>}
+        </div>}
+      </section>
+
+      {/* ===== signal summary + ramp legend ===== */}
+      {events.length>0&&<section style={{marginTop:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(118px,1fr))",gap:8}}>
+          {[["SIGNALS",fmtN(totals.count)],
+            ["PRIME",fmtN(totals.prime),totals.prime?"var(--hot)":undefined],
+            ["PROJ. LEADS",fmtN(totals.leads,0),"var(--cyan)"],
+            ["SPEND",fmtK(totals.cost)],
+            ["PROJ. REVENUE",fmtK(totals.revenue),"var(--grn)"]].map(([l,v,c])=>
+            <div key={l} className="panel" style={{padding:"10px 12px"}}><Stat label={l} value={v} color={c}/></div>)}
+        </div>
+        <div style={{marginTop:10}}>
+          <div style={{height:8,borderRadius:2,background:rampCSS,boxShadow:"0 0 14px rgba(255,61,113,.15)"}} aria-hidden="true"></div>
+          <div className="mono" style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--dim)",marginTop:4,letterSpacing:".12em"}}>
+            <span>0 · COLD</span><span>{assump.condAt} · WATCHLIST</span><span>{assump.strongAt} · PRIME</span><span>100</span>
+          </div>
+        </div>
+      </section>}
+
+      {/* ===== sort ===== */}
+      {events.length>1&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:16}}>
+        <span className="lbl">RANK BY</span>
+        {[["score","SCORE"],["date","DATE"],["cpl","CPL"]].map(([k,l])=>
+          <button key={k} className={"tog"+(sortBy===k?" on":"")} onClick={()=>setSortBy(k)}>{l}</button>)}
+        {anyDemo&&<span className="chip" style={{marginLeft:"auto",borderColor:"var(--amber)",color:"var(--amber)"}}>SAMPLE DATA</span>}
+      </div>}
+
+      {/* ===== event cards ===== */}
+      {scored.map(({ev,m})=>{
+        const c=rampColor(m.score);
+        const isOpen=!!open[ev.id];
+        const skipped=ev.status==="skip";
+        return <article key={ev.id} className="panel card" style={{marginTop:12,opacity:skipped?0.45:1}}>
+          <div className="scorebar" style={{background:c,boxShadow:"0 0 12px "+c}} aria-hidden="true"></div>
+          <div style={{padding:"14px 14px 12px 20px"}}>
+            <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+              <ScoreNum score={m.score}/>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                  <VChip verdict={m.verdict}/>
+                  <span className="chip">{ev.type}</span>
+                  {ev.data==="demo"&&<span className="chip" style={{borderColor:"var(--amber)",color:"var(--amber)"}}>DEMO</span>}
+                  {ev.status==="target"&&<span className="chip" style={{borderColor:"var(--cyan)",color:"var(--cyan)"}}>◎ TARGETED</span>}
+                  {ev.status==="booked"&&<span className="chip" style={{borderColor:"var(--grn)",color:"var(--grn)"}}>✓ BOOKED</span>}
+                </div>
+                <h3 style={{margin:"7px 0 3px",fontSize:17,fontWeight:700,letterSpacing:".01em",lineHeight:1.25,textTransform:"uppercase"}}>{ev.name}</h3>
+                <div className="mono" style={{fontSize:11.5,color:"var(--mut)"}}>
+                  {[ev.venue,ev.city].filter(Boolean).join(" · ")}{ev.mi!=null?" · "+fmtN(ev.mi)+" MI OUT":""}
+                </div>
+                <div className="mono" style={{fontSize:11.5,color:"var(--ink)",marginTop:3,fontWeight:600}}>
+                  {fmtDateY(ev.sd)}{ev.ed&&ev.ed!==ev.sd?" — "+fmtDateY(ev.ed):""}
+                </div>
+                {ev.note&&<div className="mono" style={{fontSize:11,color:"var(--dim)",marginTop:4}}>» {ev.note}</div>}
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(88px,1fr))",gap:6,marginTop:12,borderTop:"1px solid var(--line)",paddingTop:10}}>
+              <Stat label="ATTEND." value={fmtN(ev.att)}/>
+              <Stat label="EST. LEADS" value={fmtN(m.leads,0)} color="var(--cyan)"/>
+              <Stat label="CPL" value={fmt$(m.cpl)} color={m.cpl!=null&&m.cpl<=assump.targetCPL?"var(--grn)":undefined}/>
+              <Stat label="ROI" value={fmtX(m.roi)} color={m.roi!=null&&m.roi>=assump.targetROI?"var(--grn)":undefined}/>
+              <Stat label="EST. REV" value={fmtK(m.revenue)}/>
+            </div>
+
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginTop:12}}>
+              <button className="btn btn-sm btn-cyan" onClick={()=>onPlan(ev.id)} disabled={!!planLoading[ev.id]}>
+                {planLoading[ev.id]?<span className="spin">◌</span>:"▸"} {ev.plan?"REBUILD PLAN":"GAME PLAN"}
+              </button>
+              <button className="btn btn-sm" style={ev.status==="target"?{borderColor:"var(--cyan)",color:"var(--cyan)"}:{}}
+                onClick={()=>setStatus(ev.id,ev.status==="target"?"new":"target")}>◎ TARGET</button>
+              <button className="btn btn-sm" style={ev.status==="booked"?{borderColor:"var(--grn)",color:"var(--grn)"}:{}}
+                onClick={()=>setStatus(ev.id,ev.status==="booked"?"new":"booked")}>✓ BOOKED</button>
+              <button className="btn btn-sm btn-ghost" onClick={()=>setStatus(ev.id,skipped?"new":"skip")}>{skipped?"UNSKIP":"SKIP"}</button>
+              <button onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}
+                style={{marginLeft:"auto",background:"none",border:"none",color:"var(--cyan)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:".1em",cursor:"pointer"}}>
+                {isOpen?"CLOSE ▴":"ADJUST ▾"}
+              </button>
+            </div>
+          </div>
+
+          {isOpen&&<div style={{borderTop:"1px solid var(--line)",background:"var(--panel2)",padding:"14px 14px 14px 20px"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
+              <Num label="ATTENDANCE (EXP)" value={ev.att} onChange={v=>patch(ev.id,{att:num(v),lo:Math.round(num(v)*0.8),hi:Math.round(num(v)*1.2)})}/>
+              <Num label="HOMEOWNER %" suffix="%" value={Math.round(num(ev.ho,0.5)*100)} onChange={v=>patch(ev.id,{ho:clamp01(num(v)/100)})}/>
+              <Num label="BOOTH COST" prefix="$" value={ev.booth} onChange={v=>patch(ev.id,{booth:num(v)})}/>
+              <Num label="SPONSORSHIP" prefix="$" value={ev.spons} onChange={v=>patch(ev.id,{spons:num(v)})}/>
+              <Num label="STAFFING" prefix="$" value={ev.staff} onChange={v=>patch(ev.id,{staff:num(v)})}/>
+              <Num label="TRAVEL + OTHER" prefix="$" value={num(ev.travel)+num(ev.other)} onChange={v=>patch(ev.id,{travel:num(v),other:0})}/>
+            </div>
+            <div className="mono" style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:12,fontSize:10.5,color:"var(--mut)",letterSpacing:".06em"}}>
+              <span>LEAD {m.leadScore.toFixed(0)}</span><span>CPL {m.cplScore.toFixed(0)}</span>
+              <span>ROI {m.roiScore.toFixed(0)}</span><span>OWNER {m.hoScore.toFixed(0)}</span>
+              <span>RANGE {m.leadsLo.toFixed(0)}–{m.leadsHi.toFixed(0)} LEADS</span>
+            </div>
+
+            {ev.plan&&<div style={{marginTop:14,border:"1px solid var(--line2)",borderLeft:"3px solid "+c,borderRadius:4,padding:"12px 14px",background:"rgba(34,211,238,.03)"}}>
+              <div className="lbl" style={{color:"var(--cyan)",marginBottom:10}}>
+                ▸ BOOTH GAME PLAN {ev.plan.src==="template"&&<span style={{color:"var(--amber)"}}>· TEMPLATE</span>}
+              </div>
+              {[["HOOK",ev.plan.hook],["BOOTH",ev.plan.booth],["STAFFING",ev.plan.staff],
+                ["CAPTURE",ev.plan.capture],["FOLLOW-UP",ev.plan.follow],["ANGLE",ev.plan.angle]]
+                .filter(([,v])=>v).map(([k,v])=>
+                <p key={k} style={{margin:"0 0 8px",fontSize:13,lineHeight:1.55}}>
+                  <b className="mono" style={{color:c,fontSize:10.5,letterSpacing:".1em"}}>{k} · </b>
+                  <span style={{color:"var(--ink)"}}>{v}</span>
+                </p>)}
+            </div>}
+
+            <div style={{display:"flex",gap:12,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
+              {ev.src&&<a className="mono" href={ev.src} target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:600,letterSpacing:".06em"}}>↗ SOURCE LISTING</a>}
+              <button onClick={()=>removeEvent(ev.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--dim)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:".08em",cursor:"pointer"}}>✕ REMOVE</button>
+            </div>
+          </div>}
+        </article>;
+      })}
+
+      {/* ===== empty state ===== */}
+      {events.length===0&&!loading&&<div style={{textAlign:"center",padding:"64px 20px",color:"var(--mut)"}}>
+        <div className="mono glow" style={{fontSize:40,color:"var(--cyan)",opacity:.5}}>◉</div>
+        <div style={{fontWeight:700,color:"var(--ink)",fontSize:16,marginTop:10,letterSpacing:".03em"}}>NO SIGNALS ON SCREEN</div>
+        <div className="mono" style={{fontSize:12,marginTop:6,maxWidth:440,marginLeft:"auto",marginRight:"auto",lineHeight:1.6}}>
+          Enter a market, set your range, hit SCOUT. Events get pulled, scored 0–100 on your model, and ranked hot-to-cold. Flip on DEMO DATA to try it with no model connected.
+        </div>
+      </div>}
+
+      <footer className="mono" style={{marginTop:36,fontSize:9.5,color:"var(--dim)",letterSpacing:".1em",textAlign:"center"}}>
+        FIELDRADAR · SCORING ENGINE PORTED FROM THE GA FIELD EVENTS MODEL · A JTF SOFTWARE TOOL
+      </footer>
+    </main>
+
+    {/* ===== export bar ===== */}
+    {events.length>0&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"rgba(7,9,15,.94)",backdropFilter:"blur(6px)",borderTop:"1px solid var(--line2)",padding:"10px 16px calc(10px + env(safe-area-inset-bottom))"}}>
+      <div className="wrap" style={{display:"flex",gap:8,alignItems:"center",padding:0}}>
+        <span className="lbl" style={{marginRight:"auto"}}>EXPORT → DEVICE</span>
+        <button className="btn btn-sm btn-hot" onClick={exportCSV}>⬇ CSV (MODEL)</button>
+        <button className="btn btn-sm btn-cyan" onClick={exportICS}>⬇ CALENDAR .ICS</button>
+      </div>
+    </div>}
+
+    {/* ===== scoring drawer ===== */}
+    {showScoring&&<div className="drawer" role="dialog" aria-label="Scoring model" onClick={()=>setShowScoring(false)}>
+      <div onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center"}}>
+          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>SCORING MODEL</div>
+          <button onClick={()=>setShowScoring(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
+        </div>
+        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>Ported from the GA workbook. Edits re-score every event instantly and stick between sessions.</p>
+        <SectionLabel>FUNNEL DEFAULTS</SectionLabel>
+        <div className="grid2">
+          <Num label="AVG JOB VALUE" prefix="$" value={assump.jobValue} onChange={v=>setAssump(a=>({...a,jobValue:num(v)}))}/>
+          {[["engagement","ENGAGEMENT"],["qualified","QUALIFIED"],["capture","LEAD CAPTURE"],["appt","APPT SET"],["close","CLOSE RATE"]].map(([k,l])=>
+            <Num key={k} label={l} suffix="%" value={Math.round(assump[k]*1000)/10} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v)/100)}))}/>)}
+        </div>
+        <SectionLabel>SCORE TARGETS</SectionLabel>
+        <div className="grid3">
+          <Num label="LEADS" value={assump.targetLeads} onChange={v=>setAssump(a=>({...a,targetLeads:Math.max(1,num(v,1))}))}/>
+          <Num label="CPL" prefix="$" value={assump.targetCPL} onChange={v=>setAssump(a=>({...a,targetCPL:Math.max(1,num(v,1))}))}/>
+          <Num label="ROI" suffix="x" value={assump.targetROI} onChange={v=>setAssump(a=>({...a,targetROI:Math.max(0.1,num(v,1))}))}/>
+        </div>
+        <SectionLabel>WEIGHTS {Math.abs(weightSum-1)>0.001&&<span style={{color:"var(--hot)"}}> — SUM {weightSum.toFixed(2)}, SHOULD BE 1.00</span>}</SectionLabel>
+        <div className="grid2">
+          {[["wLead","LEAD VOLUME"],["wCPL","CPL EFFICIENCY"],["wROI","ROI"],["wHome","HOMEOWNER %"]].map(([k,l])=>
+            <Num key={k} label={l} step={0.05} value={assump[k]} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v))}))}/>)}
+        </div>
+        <SectionLabel>VERDICT THRESHOLDS</SectionLabel>
+        <div className="grid2">
+          <Num label="PRIME TARGET ≥" value={assump.strongAt} onChange={v=>setAssump(a=>({...a,strongAt:num(v)}))}/>
+          <Num label="WATCHLIST ≥" value={assump.condAt} onChange={v=>setAssump(a=>({...a,condAt:num(v)}))}/>
+        </div>
+        <div style={{marginTop:20}}>
+          <button className="btn btn-sm" onClick={()=>setAssump(DEFAULT_A)}>↺ RESET TO GA DEFAULTS</button>
+        </div>
+      </div>
+    </div>}
+
+    {/* ===== model connection drawer ===== */}
+    {showModel&&<div className="drawer" role="dialog" aria-label="Model connection" onClick={()=>setShowModel(false)}>
+      <div onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center"}}>
+          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>MODEL LINK</div>
+          <button onClick={()=>setShowModel(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
+        </div>
+        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.6}}>
+          Live scouting + tailored game plans need a model. Inside the Claude app, CLAUDE DIRECT links automatically. Standalone, paste an Anthropic or OpenRouter key — keys live in this browser only and are never baked into the file you share.
+        </p>
+        <SectionLabel>PROVIDER</SectionLabel>
+        <div style={{display:"flex",gap:6}}>
+          <button className={"tog"+(cfg.provider!=="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>CLAUDE DIRECT</button>
+          <button className={"tog"+(cfg.provider==="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"openrouter"}));setLinkState("untested");}}>OPENROUTER</button>
+        </div>
+        {cfg.provider==="openrouter"?<div>
+          <div className="field" style={{marginTop:12}}><label>
+            <span className="lbl">OPENROUTER API KEY</span>
+            <input className="mono" type="password" value={cfg.orKey} placeholder="sk-or-…"
+              onChange={e=>{setCfg(c=>({...c,orKey:e.target.value.trim()}));setLinkState("untested");}}/>
+          </label></div>
+          <div className="field" style={{marginTop:10}}><label>
+            <span className="lbl">MODEL SLUG</span>
+            <input className="mono" list="ormodels" value={cfg.orModel} placeholder="anthropic/claude-sonnet-4.5"
+              onChange={e=>setCfg(c=>({...c,orModel:e.target.value.trim()}))}/>
+            <datalist id="ormodels">{orList.map(id=><option key={id} value={id}/>)}</datalist>
+          </label></div>
+          <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
+            <button className="btn btn-sm" onClick={fetchModels}>⇣ FETCH MODEL LIST</button>
+            {orList.length>0&&<span className="mono" style={{fontSize:10,color:"var(--mut)"}}>{orList.length} MODELS LOADED — TYPE TO SEARCH</span>}
+          </div>
+          <p className="mono" style={{fontSize:10,color:"var(--dim)",margin:"8px 0 0",lineHeight:1.5}}>
+            Scouting attaches OpenRouter's web plugin for live listings — small added cost per scan. Game plans run on the base model.
+          </p>
+        </div>:<div>
+          <div className="field" style={{marginTop:12}}><label>
+            <span className="lbl">ANTHROPIC API KEY (OPTIONAL IN-APP)</span>
+            <input className="mono" type="password" value={cfg.apiKey} placeholder="sk-ant-…"
+              onChange={e=>{setCfg(c=>({...c,apiKey:e.target.value.trim()}));setLinkState("untested");}}/>
+          </label></div>
+          <div className="field" style={{marginTop:10}}><label>
+            <span className="lbl">MODEL</span>
+            <select className="mono" value={cfg.model} onChange={e=>setCfg(c=>({...c,model:e.target.value}))}>
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6 · best scouting</option>
+              <option value="claude-haiku-4-5">claude-haiku-4-5 · faster / cheaper</option>
+            </select>
+          </label></div>
+        </div>}
+        <div style={{display:"flex",gap:8,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
+          <button className="btn btn-sm btn-cyan" onClick={testLink}>⌁ TEST LINK</button>
+          <span className="mono" style={{fontSize:11,fontWeight:700,letterSpacing:".08em",
+            color:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--mut)"}}>
+            {linkState==="ok"?"● LINK UP":linkState==="fail"?"● LINK DOWN":"○ UNTESTED"}
+          </span>
+        </div>
+        <SectionLabel>NO MODEL? NO PROBLEM</SectionLabel>
+        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:0,lineHeight:1.6}}>
+          Flip on DEMO DATA in the console. You get clearly-labeled sample events plus playbook-template game plans — the full workflow, scoring, and exports, zero setup.
+        </p>
+        <div style={{marginTop:10}}>
+          <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)"}:{}}
+            onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
+        </div>
+      </div>
+    </div>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
