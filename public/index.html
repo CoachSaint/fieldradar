@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>FieldRadar — Event Targeting Terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -12,8 +12,8 @@
 <style>
   :root{
     --bg:#07090F; --panel:#0E1320; --panel2:#0A0F1A; --line:#1E2637; --line2:#2A3550;
-    --ink:#E7ECF5; --mut:#7C8AA5; --dim:#4A5670;
-    --cyan:#22D3EE; --amber:#F5C518; --hot:#FF3D71; --grn:#7FD34E; --org:#F97316; --teal:#0FA3A3; --cold:#274060;
+    --ink:#E7ECF5; --mut:#9BB0D1; --dim:#788CAE;
+    --cyan:#22D3EE; --amber:#F5C518; --hot:#FF3D71; --grn:#7FD34E; --org:#F97316; --teal:#0FA3A3; --cold:#4E7BA7;
     --disp:'Chakra Petch',ui-sans-serif,system-ui,sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   }
@@ -58,7 +58,7 @@
   @media (prefers-reduced-motion:reduce){.sweep::before,.spin{animation:none}}
   .scorebar{position:absolute;left:0;top:0;bottom:0;width:6px}
   .card{position:relative;overflow:hidden}
-  .glow{text-shadow:0 0 18px currentColor}
+  .glow{text-shadow:0 0 8px currentColor}
   a{color:var(--cyan)}
   .drawer{position:fixed;inset:0;z-index:60;background:rgba(5,7,12,.72);display:flex;justify-content:flex-end}
   .drawer>div{background:var(--panel);border-left:1px solid var(--line2);width:min(430px,100%);height:100%;overflow-y:auto;padding:20px}
@@ -69,9 +69,38 @@
   .field .lbl{display:block;margin-bottom:5px}
   ::selection{background:rgba(34,211,238,.35)}
 
+  /* Existing terminal tokens govern the hierarchy and responsive controls. */
+  .terminal-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 16px}
+  .terminal-intro h1{font-size:28px;line-height:1.15;letter-spacing:-.02em;margin:0 0 6px}
+  .terminal-intro p{font-size:12px;line-height:1.6;color:var(--mut);margin:0;max-width:58ch}
+  .type-filter{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .type-filter summary{cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.05em;padding:8px 0}
+  .type-filter summary:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+  .type-filter summary span{color:var(--cyan);margin-left:10px}
+  .catalog-note{font-size:11px;line-height:1.65;color:var(--mut);margin:12px 0 0;max-width:78ch}
+  .queue-title{font-size:18px;margin:20px 0 8px;letter-spacing:.01em}
+  main.wrap{padding-bottom:80px}
+
   /* Mobile-First Touch & Layout Optimizations */
   @media (max-width: 640px) {
     .mobile-hide { display: none !important; }
+    .terminal-intro h1{font-size:24px}
+    .terminal-intro{margin-bottom:14px}
+    .type-filter summary{min-height:44px;display:list-item;padding:12px 0}
+    .tog,.btn,.btn-sm,header .chip{min-height:44px}
+    .type-filter .tog{text-align:left;flex:1 1 145px;font-size:10px}
+    .catalog-note{font-size:11px}
+    .signal-totals{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+    .signal-totals .panel{padding:10px 8px!important}
+    .signal-totals .lbl{font-size:8px;letter-spacing:.07em}
+    header .wrap{gap:10px!important}
+    .export-bar .wrap{flex-wrap:wrap}
+    .export-bar .lbl{flex:1 0 100%;font-size:9px}
+    .export-bar .btn{flex:1;justify-content:center}
+    .card .mono{overflow-wrap:anywhere}
+    .card h3{font-size:16px!important;line-height:1.35!important}
+    .card button[aria-expanded]{min-height:44px}
+
     body {
       padding-bottom: env(safe-area-inset-bottom, 20px);
     }
@@ -85,12 +114,12 @@
     .btn {
       padding: 10px 14px;
       font-size: 11.5px;
-      min-height: 40px;
+      min-height: 44px;
     }
     .btn-sm {
       padding: 9px 12px;
       font-size: 11px;
-      min-height: 38px;
+      min-height: 44px;
     }
     .chip {
       padding: 4px 8px;
@@ -177,7 +206,7 @@ const KEY = "fieldradar-v1";
 const VLABEL = { "Strongly Recommended":"PRIME TARGET", "Conditional":"WATCHLIST", "Not Recommended":"PASS" };
 
 /* ============ score → color ramp (radar reflectivity) ============ */
-const RAMP = [[0,"#274060"],[30,"#0FA3A3"],[52,"#7FD34E"],[68,"#F5C518"],[84,"#F97316"],[94,"#FF3D71"],[100,"#FF3D71"]];
+const RAMP = [[0,"#5A8EB9"],[30,"#0FA3A3"],[52,"#7FD34E"],[68,"#F5C518"],[84,"#F97316"],[94,"#FF3D71"],[100,"#FF3D71"]];
 function hex2rgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
 function rampColor(s){
   s=Math.max(0,Math.min(100,s));
@@ -271,22 +300,8 @@ function parseJSONText(text){
 }
 async function callModel(prompt,useSearch,cfg){
   cfg=cfg||{};
-  // 1. Automatic Zero-Config Serverless AI (built-in, no key required for Ty)
-  try {
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({prompt, useSearch})
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.content) return data.content;
-    }
-  } catch (err) {
-    console.warn("Serverless AI route error:", err);
-  }
 
-  // 2. Client-provided OpenRouter key if present
+  // 1. Client-provided OpenRouter key if present
   if(cfg.provider==="openrouter" && cfg.orKey){
     const body={model:cfg.orModel||"anthropic/claude-sonnet-4.5",max_tokens:1000,
       messages:[{role:"user",content:prompt}]};
@@ -299,11 +314,14 @@ async function callModel(prompt,useSearch,cfg){
       const data=await res.json();
       const msg=data.choices&&data.choices[0]&&data.choices[0].message;
       if(msg) return typeof msg.content==="string"?msg.content:(msg.content||[]).map(p=>(p&&p.text)||"").join("\n");
+    } else {
+      const errText = await res.text().catch(()=>"");
+      throw new Error("OpenRouter error (" + res.status + "): " + (errText || res.statusText));
     }
   }
 
-  // 3. Client-provided Anthropic key if present
-  if(cfg.apiKey){
+  // 2. Client-provided Anthropic key if present
+  if(cfg.provider!=="openrouter" && cfg.apiKey){
     const headers={"Content-Type":"application/json", "x-api-key":cfg.apiKey, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true"};
     const body={model:cfg.model||"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]};
     if(useSearch)body.tools=[{type:"web_search_20250305",name:"web_search"}];
@@ -311,6 +329,9 @@ async function callModel(prompt,useSearch,cfg){
     if(res.ok) {
       const data=await res.json();
       return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    } else {
+      const errText = await res.text().catch(()=>"");
+      throw new Error("Anthropic error (" + res.status + "): " + (errText || res.statusText));
     }
   }
 
@@ -493,6 +514,21 @@ function toICS(events,A){
   return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//FieldRadar//Event Targeting//EN",ve,"END:VCALENDAR"].join("\r\n");
 }
 
+/* Calendar draft only: opening the link does not book or verify an event. */
+function buildGoogleCalUrl(ev,A){
+  const params=new URLSearchParams({action:"TEMPLATE",text:"Booth: "+ev.name,
+    location:[ev.venue,ev.city].filter(Boolean).join(", ")});
+  const validDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(value||"")&&Number.isFinite(Date.parse(value+"T00:00:00Z"));
+  if(validDate(ev.sd)){
+    const end=new Date((validDate(ev.ed)?ev.ed:ev.sd)+"T00:00:00Z");
+    end.setUTCDate(end.getUTCDate()+1);
+    params.set("dates",ev.sd.replace(/-/g,"")+"/"+end.toISOString().slice(0,10).replace(/-/g,""));
+  }
+  const m=computeEvent(ev,A);
+  params.set("details","Confirm dates and vendor availability with the organizer. Model projections: "+Math.round(m.leads)+" leads, CPL "+fmt$(m.cpl)+", ROI "+fmtX(m.roi)+"."+(ev.src?" Source: "+ev.src:""));
+  return "https://calendar.google.com/calendar/render?"+params.toString();
+}
+
 /* ============ UI atoms ============ */
 function ScoreNum({score}){
   const c=rampColor(score);
@@ -520,6 +556,110 @@ function Num({label,value,onChange,prefix,suffix,step}){
 }
 function SectionLabel({children}){return <div className="lbl" style={{color:"var(--cyan)",margin:"18px 0 10px"}}>{children}</div>;}
 
+/* ============ ACCESSIBLE MODAL DRAWER ============ */
+function ModalDrawer({ id, titleId, title, isOpen, onClose, triggerRef, children }) {
+  const drawerRef = useRef(null);
+  const prevActiveRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    prevActiveRef.current = triggerRef?.current || document.activeElement;
+
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const timer = setTimeout(() => {
+      if (!drawerRef.current) return;
+      const focusables = drawerRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length > 0) {
+        focusables[0].focus();
+      } else {
+        drawerRef.current.focus();
+      }
+    }, 30);
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === "Tab" && drawerRef.current) {
+        const focusables = Array.from(
+          drawerRef.current.querySelectorAll(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first || document.activeElement === drawerRef.current) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = origOverflow;
+      clearTimeout(timer);
+      if (prevActiveRef.current && typeof prevActiveRef.current.focus === "function") {
+        try { prevActiveRef.current.focus(); } catch (err) {}
+      }
+    };
+  }, [isOpen, triggerRef]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      id={id}
+      onClick={onClose}
+    >
+      <div
+        ref={drawerRef}
+        tabIndex="-1"
+        onClick={(e) => e.stopPropagation()}
+        style={{ outline: "none" }}
+      >
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <h2 id={titleId} style={{ fontWeight: 700, fontSize: 16, letterSpacing: ".04em", margin: 0, color: "var(--ink)" }}>
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={`Close ${title}`}
+            className="btn btn-sm btn-ghost"
+            style={{ marginLeft: "auto", fontSize: 13, padding: "4px 8px" }}
+          >
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /* ============ APP ============ */
 function App(){
   const [assump,setAssump]=useState(DEFAULT_A);
@@ -527,9 +667,12 @@ function App(){
   const [radius,setRadius]=useState(50);
   const [months,setMonths]=useState(6);
   const [types,setTypes]=useState(EVENT_TYPES);
+  const [typesExpanded,setTypesExpanded]=useState(()=>window.innerWidth>640);
   const [events,setEvents]=useState([]);
   const [lastMarket,setLastMarket]=useState("");
   const [loading,setLoading]=useState(false);
+  const [searchStep,setSearchStep]=useState("");
+  const [searchedOnce,setSearchedOnce]=useState(false);
   const [error,setError]=useState("");
   const [sortBy,setSortBy]=useState("score");
   const [open,setOpen]=useState({});
@@ -616,6 +759,9 @@ function App(){
   const [showScoring,setShowScoring]=useState(false);
   const [showModel,setShowModel]=useState(false);
   const [showCoverage,setShowCoverage]=useState(false);
+  const coverageBtnRef = useRef(null);
+  const scoringBtnRef = useRef(null);
+  const modelBtnRef = useRef(null);
   const [cfg,setCfg]=useState({provider:"anthropic",apiKey:"",model:"claude-sonnet-4-6",orKey:"",orModel:"anthropic/claude-sonnet-4.5",demo:false});
   const [orList,setOrList]=useState([]);
   const [linkState,setLinkState]=useState("untested"); // untested | ok | fail
@@ -673,10 +819,11 @@ function App(){
   const weightSum=assump.wLead+assump.wCPL+assump.wROI+assump.wHome;
   const anyDemo=events.some(e=>e.data==="demo");
 
-                  async function onScout(forceDemo){
+  async function onScout(forceDemo){
     const q = market.trim();
     if(!q){setError("Enter a market first — city + state or a ZIP.");return;}
     setLoading(true);setError("");
+    setSearchStep("Resolving market coordinates and filtering verified seed signals...");
     const params={market:q,radius,months,types:types.length?types:EVENT_TYPES};
 
     // Strict Mathematical Geo-Separator (Haversine distance filter)
@@ -700,28 +847,45 @@ function App(){
       }
       // Fallback to text matching if coords missing
       const evCity = ev.city.toUpperCase();
-      if (evCity.includes(cityPart)) return true;
-      if (stateCode && evCity.includes(stateCode)) return true;
+      if (cityPart && (evCity === cityPart || new RegExp(`\\b${cityPart}\\b`).test(evCity))) return true;
+      if (stateCode && (new RegExp(`\\b${stateCode}\\b`).test(evCity) || evCity.endsWith(stateCode))) return true;
       return false;
     });
 
     if (p0Matches.length > 0) {
       setEvents(p0Matches);
       setLastMarket(q + " · " + radius + " MI (" + p0Matches.length + " VERIFIED SIGNALS)");
+    } else {
+      setEvents([]);
+      setLastMarket(q + " · " + radius + " MI");
     }
 
     try{
       let found;
       if(cfg.demo||forceDemo){
+        setSearchStep("Generating benchmark demo signals for " + q + " (" + radius + " mi)...");
         found=scoutDemo(params);
       } else {
-        const liveFound = await scoutLive({...params,cfg});
-        setLinkState("ok");
-        // Deduplicate P0 verified + live scouted
-        const seenNames = new Set(p0Matches.map(e => e.name.toLowerCase()));
-        const uniqueLive = liveFound.filter(e => !seenNames.has(e.name.toLowerCase()));
-        const todayIso = new Date().toISOString().slice(0, 10);
-        found = [...p0Matches, ...uniqueLive].filter(e => (e.ed || e.sd || "9999") >= todayIso);
+        const hasKey = cfg.provider === "openrouter" ? !!cfg.orKey : !!cfg.apiKey;
+        if (!hasKey) {
+          if (p0Matches.length > 0) {
+            found = p0Matches;
+            setError("Showing verified catalog events. Connect an Anthropic or OpenRouter key in MODEL LINK to scout live web listings.");
+          } else {
+            setShowModel(true);
+            setError("No verified catalog events in this market. Connect an Anthropic or OpenRouter key in MODEL LINK to scout live web listings, or enable DEMO DATA.");
+            return;
+          }
+        } else {
+          setSearchStep("Scanning live web events & vendor portals within " + radius + " mi of " + q + "...");
+          const liveFound = await scoutLive({...params,cfg});
+          setLinkState("ok");
+          // Deduplicate P0 verified + live scouted
+          const seenNames = new Set(p0Matches.map(e => e.name.toLowerCase()));
+          const uniqueLive = liveFound.filter(e => !seenNames.has(e.name.toLowerCase()));
+          const todayIso = new Date().toISOString().slice(0, 10);
+          found = [...p0Matches, ...uniqueLive].filter(e => (e.ed || e.sd || "9999") >= todayIso);
+        }
       }
       setEvents(found);
       setLastMarket(q + " · " + radius + " MI");
@@ -736,24 +900,47 @@ function App(){
       }
     }finally{
       setLoading(false);
+      setSearchStep("");
+      setSearchedOnce(true);
     }
   }
   async function onPlan(id){
     const ev=events.find(x=>x.id===id);if(!ev)return;
+    const hasKey = cfg.provider === "openrouter" ? !!cfg.orKey : !!cfg.apiKey;
+    if (!cfg.demo && !hasKey) {
+      setShowModel(true);
+      setError("Connect an Anthropic or OpenRouter key in MODEL LINK to generate live AI game plans, or enable DEMO DATA.");
+      return;
+    }
     setPlanLoading(p=>({...p,[id]:true}));
     try{
       let plan;
-      if(cfg.demo){plan=planDemo(ev,lastMarket||market);}
-      else{try{plan=await planLive(ev,lastMarket||market,cfg);setLinkState("ok");}
-        catch(e){plan=planDemo(ev,lastMarket||market);}}
+      if(cfg.demo){
+        plan=planDemo(ev,lastMarket||market);
+      } else {
+        try {
+          plan=await planLive(ev,lastMarket||market,cfg);
+          setLinkState("ok");
+        } catch(e) {
+          setError("Game plan generation failed: " + (e.message || "Model error"));
+          setLinkState("fail");
+          return;
+        }
+      }
       setEvents(es=>es.map(x=>x.id===id?{...x,plan}:x));
       setOpen(o=>({...o,[id]:true}));
     }finally{setPlanLoading(p=>({...p,[id]:false}));}
   }
   async function testLink(){
+    const hasKey = cfg.provider==="openrouter" ? !!cfg.orKey : !!cfg.apiKey;
+    if(!hasKey){
+      setError("Enter an API key first before testing the link.");
+      setLinkState("fail");
+      return;
+    }
     setLinkState("untested");
     try{await callModel("Reply with exactly: OK",false,cfg);setLinkState("ok");}
-    catch(e){setLinkState("fail");}
+    catch(e){setLinkState("fail");setError("Link test failed: " + (e.message || "Unable to reach provider"));}
   }
   async function fetchModels(){
     try{const r=await fetch("https://openrouter.ai/api/v1/models");const d=await r.json();
@@ -781,18 +968,21 @@ function App(){
     : cfg.provider==="openrouter"
       ? (cfg.orKey
           ? {txt:linkState==="fail"?"OPENROUTER · DOWN":"OPENROUTER: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
-          : {txt:"OPENROUTER: NO KEY",c:"var(--hot)"})
-      : cfg.apiKey ? {txt:linkState==="fail"?"KEY · LINK DOWN":"CLAUDE: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
-      : {txt:linkState==="ok"?"CLAUDE: LINKED":linkState==="fail"?"NO MODEL LINK":"CLAUDE: AUTO",c:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--cyan)"};
+          : {txt:"CONNECT MODEL",c:"var(--amber)"})
+      : cfg.apiKey
+        ? {txt:linkState==="fail"?"CLAUDE · DOWN":"CLAUDE: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
+        : {txt:"CONNECT MODEL",c:"var(--amber)"};
 
   return <div style={{paddingBottom:110}}>
     {/* ===== header ===== */}
     <header style={{borderBottom:"1px solid var(--line)",background:"rgba(7,9,15,.85)",backdropFilter:"blur(6px)",position:"sticky",top:0,zIndex:40}}>
-      <div className="wrap" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px"}}>
-        <div className="sweep" aria-hidden="true"></div>
-        <div style={{lineHeight:1.05,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:19,letterSpacing:".04em"}}>FIELD<span style={{color:"var(--cyan)"}}>RADAR</span></div>
-          <div className="lbl" style={{fontSize:9,marginTop:2}}>EVENT TARGETING TERMINAL</div>
+      <div className="wrap" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",flexWrap:"wrap"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div className="sweep" aria-hidden="true"></div>
+          <div style={{lineHeight:1.05,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:19,letterSpacing:".04em"}}>FIELD<span style={{color:"var(--cyan)"}}>RADAR</span></div>
+            <div className="lbl" style={{fontSize:9,marginTop:2}}>EVENT TARGETING TERMINAL</div>
+          </div>
         </div>
         <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" title="Powered by JTF Software Solutions (jtfsoftware.com)"
            style={{display:"flex",alignItems:"center",gap:9,paddingLeft:12,borderLeft:"1px solid var(--line2)",marginLeft:4,textDecoration:"none"}}>
@@ -800,21 +990,28 @@ function App(){
             <path fill="#F6F4EF" d="M10 65.97 L91.5 25.22 L91.5 35.28 L31.06 65.5 L91.5 65.5 L91.5 76.5 L10 76.5 Z" />
             <rect x="80.5" y="33" width="11" height="38" fill="#FF3B00" />
           </svg>
-          <div className="mobile-hide" style={{lineHeight:1.2}}>
-            <div className="lbl" style={{fontSize:8,color:"var(--dim)",letterSpacing:".14em"}}>POWERED BY</div>
-            <div className="mono" style={{fontSize:11,fontWeight:600,color:"#F6F4EF",letterSpacing:".14em",textTransform:"uppercase"}}>JTF SOFTWARE SOLUTIONS</div>
+          <div style={{lineHeight:1.2}}>
+            <span className="mono" style={{fontSize:11,fontWeight:600,color:"#F6F4EF",letterSpacing:".1em",textTransform:"uppercase",display:"inline-block"}}>
+              Powered by JTF Software Solutions
+            </span>
           </div>
         </a>
-        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
-          <button className="chip" onClick={()=>setShowModel(true)} style={{cursor:"pointer",background:"transparent",borderColor:linkChip.c,color:linkChip.c}}>{linkChip.txt}</button>
-          <button className="btn btn-sm btn-ghost" onClick={()=>setShowCoverage(true)} aria-label="National Coverage">COVERAGE</button>
-          <button className="btn btn-sm btn-ghost" onClick={()=>setShowScoring(true)} aria-label="Scoring model">SCORING</button>
+        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <button ref={modelBtnRef} className="chip" onClick={()=>setShowModel(true)} aria-haspopup="dialog" aria-expanded={showModel} aria-controls="modal-model" style={{cursor:"pointer",background:"transparent",borderColor:linkChip.c,color:linkChip.c}}>{linkChip.txt}</button>
+          <button ref={coverageBtnRef} className="btn btn-sm btn-ghost" onClick={()=>setShowCoverage(true)} aria-haspopup="dialog" aria-expanded={showCoverage} aria-controls="modal-coverage" aria-label="National Coverage Dashboard">COVERAGE</button>
+          <button ref={scoringBtnRef} className="btn btn-sm btn-ghost" onClick={()=>setShowScoring(true)} aria-haspopup="dialog" aria-expanded={showScoring} aria-controls="modal-scoring" aria-label="Scoring Model Configuration">SCORING</button>
         </div>
       </div>
       <div style={{height:2,background:rampCSS,opacity:.85}} aria-hidden="true"></div>
     </header>
 
     <main className="wrap" style={{paddingTop:18}}>
+      <div className="terminal-intro">
+        <div>
+          <h1>Your field opportunity desk.</h1>
+          <p>Review event signals, compare modeled returns, and confirm the details with organizers.</p>
+        </div>
+      </div>
       {/* ===== command console ===== */}
       <section className="panel" style={{padding:16}}>
         <div className="lbl" style={{marginBottom:10,color:"var(--cyan)"}}>▸ Scan parameters</div>
@@ -884,11 +1081,14 @@ function App(){
             <option value={6}>6 MONTHS</option><option value={12}>12 MONTHS</option>
           </select>
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
+        <details className="type-filter" open={typesExpanded} onToggle={e=>setTypesExpanded(e.currentTarget.open)}>
+          <summary>EVENT TYPES <span>{types.length} / {EVENT_TYPES.length} selected</span></summary>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
           {EVENT_TYPES.map(t=>{const on=types.includes(t);
             return <button key={t} className={"tog"+(on?" on":"")}
-              onClick={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}>{t}</button>;})}
-        </div>
+              aria-pressed={on} onClick={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}>{t}</button>;})}
+          </div>
+        </details>
         <div style={{display:"flex",gap:10,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
           <button className="btn btn-hot" onClick={()=>onScout()} disabled={loading}>
             {loading?<span className="spin">◌</span>:"◉"} {loading?"SCANNING…":"SCOUT EVENTS"}
@@ -900,22 +1100,36 @@ function App(){
             onClick={()=>{store.set(KEY,"");setEvents(P0_SEED_EVENTS);setMarket("DALLAS, TX");setLastMarket("NATIONAL P0 HIGHLIGHTS");}}>↺ RESET CACHE</button>
           {lastMarket&&<span className="mono" style={{fontSize:11,color:"var(--mut)"}}>LAST SCAN: <b style={{color:"var(--ink)"}}>{lastMarket.toUpperCase()}</b></span>}
         </div>
-        {error&&<div role="alert" className="mono" style={{marginTop:12,fontSize:12,color:"var(--hot)",fontWeight:600,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-          <span>▲ {error}</span>
-          {error.indexOf("NO MODEL LINK")===0&&<span style={{display:"flex",gap:6}}>
-            <button className="btn btn-sm btn-cyan" onClick={()=>setShowModel(true)}>CONNECT A MODEL</button>
-            <button className="btn btn-sm" onClick={()=>onScout(true)}>RUN DEMO DATA</button>
-          </span>}
+        {loading&&<div role="status" aria-live="polite" className="panel" style={{marginTop:12,padding:"12px 14px",borderLeft:"3px solid var(--cyan)",background:"rgba(34,211,238,.06)",display:"flex",alignItems:"center",gap:12}}>
+          <span className="spin" style={{color:"var(--cyan)",fontSize:18}}>◌</span>
+          <div>
+            <div className="mono" style={{fontSize:12,fontWeight:700,color:"var(--cyan)",letterSpacing:".06em"}}>
+              SCANNING TARGET MARKET — {market.toUpperCase()||"NATIONAL"} · {radius} MI
+            </div>
+            <div className="mono" style={{fontSize:11,color:"var(--mut)",marginTop:2}}>
+              {searchStep||"Querying verified signals and calculating opportunity economics..."}
+            </div>
+          </div>
+        </div>}
+        {error&&<div role="alert" aria-live="assertive" className="mono" style={{marginTop:12,fontSize:12,color:"var(--hot)",fontWeight:600,padding:"10px 14px",background:"rgba(255,61,113,.08)",border:"1px solid rgba(255,61,113,.25)",borderRadius:4,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{flex:"1 1 200px"}}>▲ {error}</span>
+          <div style={{display:"flex",gap:6,marginLeft:"auto",alignItems:"center"}}>
+            {error.indexOf("NO MODEL LINK")===0&&<>
+              <button className="btn btn-sm btn-cyan" onClick={()=>setShowModel(true)}>CONNECT A MODEL</button>
+              <button className="btn btn-sm" onClick={()=>onScout(true)}>RUN DEMO DATA</button>
+            </>}
+            <button className="btn btn-sm btn-ghost" onClick={()=>setError("")} aria-label="Dismiss error notification">✕ DISMISS</button>
+          </div>
         </div>}
       </section>
 
       {/* ===== signal summary + ramp legend ===== */}
       {events.length>0&&<section style={{marginTop:14}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(118px,1fr))",gap:8}}>
+        <div className="signal-totals" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(118px,1fr))",gap:8}}>
           {[["SIGNALS",fmtN(totals.count)],
             ["PRIME",fmtN(totals.prime),totals.prime?"var(--hot)":undefined],
             ["PROJ. LEADS",fmtN(totals.leads,0),"var(--cyan)"],
-            ["SPEND",fmtK(totals.cost)],
+            ["EST. SPEND",fmtK(totals.cost)],
             ["PROJ. REVENUE",fmtK(totals.revenue),"var(--grn)"]].map(([l,v,c])=>
             <div key={l} className="panel" style={{padding:"10px 12px"}}><Stat label={l} value={v} color={c}/></div>)}
         </div>
@@ -927,11 +1141,13 @@ function App(){
         </div>
       </section>}
 
+      <p className="catalog-note">Catalog signals are not a live availability feed. Confirm dates, attendance and vendor openings with the organizer. Leads and revenue are model projections.</p>
+      {events.length>0&&<h2 className="queue-title">Opportunity queue</h2>}
       {/* ===== sort ===== */}
       {events.length>1&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:16}}>
         <span className="lbl">RANK BY</span>
         {[["score","SCORE"],["date","DATE"],["cpl","CPL"]].map(([k,l])=>
-          <button key={k} className={"tog"+(sortBy===k?" on":"")} onClick={()=>setSortBy(k)}>{l}</button>)}
+          <button key={k} aria-pressed={sortBy===k} className={"tog"+(sortBy===k?" on":"")} onClick={()=>setSortBy(k)}>{l}</button>)}
         {anyDemo&&<span className="chip" style={{marginLeft:"auto",borderColor:"var(--amber)",color:"var(--amber)"}}>SAMPLE DATA</span>}
       </div>}
 
@@ -984,7 +1200,7 @@ function App(){
               <button className="btn btn-sm" style={ev.status==="booked"?{borderColor:"var(--grn)",color:"var(--grn)"}:{}}
                 onClick={()=>setStatus(ev.id,ev.status==="booked"?"new":"booked")}>✓ BOOKED</button>
               <button className="btn btn-sm btn-ghost" onClick={()=>setStatus(ev.id,skipped?"new":"skip")}>{skipped?"UNSKIP":"SKIP"}</button>
-              <button onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}
+              <button aria-expanded={isOpen} aria-label={(isOpen?"Close details for ":"Adjust details for ")+ev.name} onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}
                 style={{marginLeft:"auto",background:"none",border:"none",color:"var(--cyan)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:".1em",cursor:"pointer"}}>
                 {isOpen?"CLOSE ▴":"ADJUST ▾"}
               </button>
@@ -1099,10 +1315,25 @@ function App(){
       })}
 
       {/* ===== empty state ===== */}
-      {events.length===0&&!loading&&<div style={{textAlign:"center",padding:"64px 20px",color:"var(--mut)"}}>
+      {events.length===0&&!loading&&searchedOnce&&<div role="status" aria-live="polite" style={{textAlign:"center",padding:"56px 20px",color:"var(--mut)"}}>
+        <div className="mono glow" style={{fontSize:36,color:"var(--amber)",opacity:.75}}>◎</div>
+        <div style={{fontWeight:700,color:"var(--ink)",fontSize:16,marginTop:10,letterSpacing:".03em"}}>
+          NO QUALIFYING SIGNALS IN {lastMarket?lastMarket.toUpperCase():(market.toUpperCase()||"THIS WINDOW")}
+        </div>
+        <div className="mono" style={{fontSize:12,marginTop:6,maxWidth:480,marginLeft:"auto",marginRight:"auto",lineHeight:1.6,color:"var(--dim)"}}>
+          No verified consumer events matched your active filters within {radius} miles. Widen your search radius or inspect sample events with demo data.
+        </div>
+        <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:16,flexWrap:"wrap"}}>
+          {radius<100&&<button className="btn btn-sm btn-cyan" onClick={()=>{setRadius(100);setTimeout(()=>onScout(),50);}}>EXPAND RADIUS TO 100 MI</button>}
+          <button className="btn btn-sm" onClick={()=>onScout(true)}>RUN DEMO SIGNALS</button>
+          <button className="btn btn-sm btn-ghost" onClick={addManual}>+ ADD MANUAL EVENT</button>
+        </div>
+      </div>}
+
+      {events.length===0&&!loading&&!searchedOnce&&<div style={{textAlign:"center",padding:"64px 20px",color:"var(--mut)"}}>
         <div className="mono glow" style={{fontSize:40,color:"var(--cyan)",opacity:.5}}>◉</div>
         <div style={{fontWeight:700,color:"var(--ink)",fontSize:16,marginTop:10,letterSpacing:".03em"}}>NO SIGNALS ON SCREEN</div>
-        <div className="mono" style={{fontSize:12,marginTop:6,maxWidth:440,marginLeft:"auto",marginRight:"auto",lineHeight:1.6}}>
+        <div className="mono" style={{fontSize:12,marginTop:6,maxWidth:440,marginLeft:"auto",marginRight:"auto",lineHeight:1.6,color:"var(--dim)"}}>
           Enter a market, set your range, hit SCOUT. Events get pulled, scored 0–100 on your model, and ranked hot-to-cold. Flip on DEMO DATA to try it with no model connected.
         </div>
       </div>}
@@ -1116,7 +1347,7 @@ function App(){
           <span className="mono" style={{fontWeight:600,fontSize:13,color:"#F6F4EF",letterSpacing:".18em",textTransform:"uppercase"}}>JTF SOFTWARE SOLUTIONS</span>
         </a>
         <div className="mono" style={{fontSize:11,color:"var(--mut)",letterSpacing:".08em"}}>
-          POWERED BY <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" style={{color:"var(--cyan)",fontWeight:700}}>JTF SOFTWARE SOLUTIONS</a> · CONTRACTOR INTELLIGENCE & EVENT ENGINE
+          Powered by <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" style={{color:"var(--cyan)",fontWeight:700}}>JTF Software Solutions</a> · Contractor Intelligence & Event Engine
         </div>
         <div className="mono" style={{fontSize:9.5,color:"var(--dim)",letterSpacing:".06em"}}>
           FIELDRADAR · CONFIDENTIAL & PROPRIETARY · JTF SOFTWARE SOLUTIONS · ALL RIGHTS RESERVED
@@ -1125,7 +1356,7 @@ function App(){
     </main>
 
     {/* ===== export bar ===== */}
-    {events.length>0&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"rgba(7,9,15,.94)",backdropFilter:"blur(6px)",borderTop:"1px solid var(--line2)",padding:"10px 16px calc(10px + env(safe-area-inset-bottom))"}}>
+    {events.length>0&&<div className="export-bar" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"rgba(7,9,15,.94)",backdropFilter:"blur(6px)",borderTop:"1px solid var(--line2)",padding:"10px 16px calc(10px + env(safe-area-inset-bottom))"}}>
       <div className="wrap" style={{display:"flex",gap:8,alignItems:"center",padding:0}}>
         <span className="lbl" style={{marginRight:"auto"}}>EXPORT → DEVICE</span>
         <button className="btn btn-sm btn-hot" onClick={exportCSV}>⬇ CSV (MODEL)</button>
@@ -1133,151 +1364,153 @@ function App(){
       </div>
     </div>}
 
-    
-    {/* ===== national coverage & data-ops drawer ===== */}
-    {showCoverage&&<div className="drawer" role="dialog" aria-label="National coverage dashboard" onClick={()=>setShowCoverage(false)}>
-      <div onClick={e=>e.stopPropagation()}>
-        <div style={{display:"flex",alignItems:"center"}}>
-          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>NATIONAL DATA-OPS & COVERAGE</div>
-          <button onClick={()=>setShowCoverage(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
-        </div>
-        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>
-          National Field Opportunity Intelligence Graph — Backbone status, active data adapters, and vendor opportunity completeness.
-        </p>
+    {/* ===== national coverage & data-ops modal drawer ===== */}
+    <ModalDrawer
+      id="modal-coverage"
+      titleId="coverage-dialog-title"
+      title="NATIONAL DATA-OPS & COVERAGE"
+      isOpen={showCoverage}
+      onClose={()=>setShowCoverage(false)}
+      triggerRef={coverageBtnRef}
+    >
+      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>
+        National Field Opportunity Intelligence Graph — Backbone status, active data adapters, and vendor opportunity completeness.
+      </p>
 
-        <SectionLabel>DATA-OPS METRICS</SectionLabel>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
-          <div className="panel" style={{padding:"10px 12px"}}><Stat label="VERIFIED P0" value={P0_SEED_EVENTS.length} color="var(--cyan)"/></div>
-          <div className="panel" style={{padding:"10px 12px"}}><Stat label="APP LINKS" value="100%" color="var(--grn)"/></div>
-          <div className="panel" style={{padding:"10px 12px"}}><Stat label="DEADLINES" value="100%" color="var(--amber)"/></div>
-          <div className="panel" style={{padding:"10px 12px"}}><Stat label="ORGANIZERS" value="100%" color="var(--hot)"/></div>
-        </div>
-
-        <SectionLabel>CONNECTED PLATFORM ADAPTERS</SectionLabel>
-        <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
-          <div><b style={{color:"var(--grn)"}}>● USDA Local Food Portal API</b> — 8,000+ Farmers Markets (P0)</div>
-          <div><b style={{color:"var(--grn)"}}>● Socrata SODA Open Data</b> — City Special Events & Street Permits</div>
-          <div><b style={{color:"var(--grn)"}}>● CivicPlus Municipal RSS</b> — City & County Parks & Rec Calendars</div>
-          <div><b style={{color:"var(--grn)"}}>● WordPress Tribe Events REST</b> — Chamber of Commerce & Festival Feeds</div>
-          <div><b style={{color:"var(--grn)"}}>● Census ACS Demographic Layer</b> — Housing Value & Owner-Occupancy</div>
-          <div><b style={{color:"var(--cyan)"}}>● DeepSeek / GPT-4o-Mini Scout</b> — Live Web & Vendor Packet Extractor</div>
-        </div>
-
-        <SectionLabel>STATE-BY-STATE P0 HIGHLIGHTS</SectionLabel>
-        <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
-          <div><b style={{color:"var(--ink)"}}>TEXAS (DFW · Tyler · Austin · Houston · SATX):</b> 7 Flagship Shows Verified</div>
-          <div><b style={{color:"var(--ink)"}}>ALABAMA (Mobile · Baldwin · Foley · Gulf Shores · BHM):</b> 4 Flagship Events Verified</div>
-          <div><b style={{color:"var(--ink)"}}>GEORGIA (Atlanta · Perry · Duluth/Gwinnett):</b> 3 Flagship Expos Verified</div>
-          <div><b style={{color:"var(--ink)"}}>FLORIDA & CAROLINAS (Tampa · Charlotte):</b> Hurricane & Remodeling Expos Verified</div>
-        </div>
-
-        <div style={{marginTop:20}}>
-          <button className="btn btn-sm btn-cyan" onClick={()=>setShowCoverage(false)}>RETURN TO TERMINAL</button>
-        </div>
+      <SectionLabel>DATA-OPS METRICS</SectionLabel>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
+        <div className="panel" style={{padding:"10px 12px"}}><Stat label="VERIFIED P0" value={P0_SEED_EVENTS.length} color="var(--cyan)"/></div>
+        <div className="panel" style={{padding:"10px 12px"}}><Stat label="APP LINKS" value="100%" color="var(--grn)"/></div>
+        <div className="panel" style={{padding:"10px 12px"}}><Stat label="DEADLINES" value="100%" color="var(--amber)"/></div>
+        <div className="panel" style={{padding:"10px 12px"}}><Stat label="ORGANIZERS" value="100%" color="var(--hot)"/></div>
       </div>
-    </div>}
 
-    {/* ===== scoring drawer ===== */}
-    {showScoring&&<div className="drawer" role="dialog" aria-label="Scoring model" onClick={()=>setShowScoring(false)}>
-      <div onClick={e=>e.stopPropagation()}>
-        <div style={{display:"flex",alignItems:"center"}}>
-          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>SCORING MODEL</div>
-          <button onClick={()=>setShowScoring(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
-        </div>
-        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>Ported from the GA workbook. Edits re-score every event instantly and stick between sessions.</p>
-        <SectionLabel>FUNNEL DEFAULTS</SectionLabel>
-        <div className="grid2">
-          <Num label="AVG JOB VALUE" prefix="$" value={assump.jobValue} onChange={v=>setAssump(a=>({...a,jobValue:num(v)}))}/>
-          {[["engagement","ENGAGEMENT"],["qualified","QUALIFIED"],["capture","LEAD CAPTURE"],["appt","APPT SET"],["close","CLOSE RATE"]].map(([k,l])=>
-            <Num key={k} label={l} suffix="%" value={Math.round(assump[k]*1000)/10} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v)/100)}))}/>)}
-        </div>
-        <SectionLabel>SCORE TARGETS</SectionLabel>
-        <div className="grid3">
-          <Num label="LEADS" value={assump.targetLeads} onChange={v=>setAssump(a=>({...a,targetLeads:Math.max(1,num(v,1))}))}/>
-          <Num label="CPL" prefix="$" value={assump.targetCPL} onChange={v=>setAssump(a=>({...a,targetCPL:Math.max(1,num(v,1))}))}/>
-          <Num label="ROI" suffix="x" value={assump.targetROI} onChange={v=>setAssump(a=>({...a,targetROI:Math.max(0.1,num(v,1))}))}/>
-        </div>
-        <SectionLabel>WEIGHTS {Math.abs(weightSum-1)>0.001&&<span style={{color:"var(--hot)"}}> — SUM {weightSum.toFixed(2)}, SHOULD BE 1.00</span>}</SectionLabel>
-        <div className="grid2">
-          {[["wLead","LEAD VOLUME"],["wCPL","CPL EFFICIENCY"],["wROI","ROI"],["wHome","HOMEOWNER %"]].map(([k,l])=>
-            <Num key={k} label={l} step={0.05} value={assump[k]} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v))}))}/>)}
-        </div>
-        <SectionLabel>VERDICT THRESHOLDS</SectionLabel>
-        <div className="grid2">
-          <Num label="PRIME TARGET ≥" value={assump.strongAt} onChange={v=>setAssump(a=>({...a,strongAt:num(v)}))}/>
-          <Num label="WATCHLIST ≥" value={assump.condAt} onChange={v=>setAssump(a=>({...a,condAt:num(v)}))}/>
-        </div>
-        <div style={{marginTop:20}}>
-          <button className="btn btn-sm" onClick={()=>setAssump(DEFAULT_A)}>↺ RESET TO GA DEFAULTS</button>
-        </div>
+      <SectionLabel>CONNECTED PLATFORM ADAPTERS</SectionLabel>
+      <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
+        <div><b style={{color:"var(--grn)"}}>● USDA Local Food Portal API</b> — 8,000+ Farmers Markets (P0)</div>
+        <div><b style={{color:"var(--grn)"}}>● Socrata SODA Open Data</b> — City Special Events & Street Permits</div>
+        <div><b style={{color:"var(--grn)"}}>● CivicPlus Municipal RSS</b> — City & County Parks & Rec Calendars</div>
+        <div><b style={{color:"var(--grn)"}}>● WordPress Tribe Events REST</b> — Chamber of Commerce & Festival Feeds</div>
+        <div><b style={{color:"var(--grn)"}}>● Census ACS Demographic Layer</b> — Housing Value & Owner-Occupancy</div>
+        <div><b style={{color:"var(--cyan)"}}>● DeepSeek / GPT-4o-Mini Scout</b> — Live Web & Vendor Packet Extractor</div>
       </div>
-    </div>}
 
-    {/* ===== model connection drawer ===== */}
-    {showModel&&<div className="drawer" role="dialog" aria-label="Model connection" onClick={()=>setShowModel(false)}>
-      <div onClick={e=>e.stopPropagation()}>
-        <div style={{display:"flex",alignItems:"center"}}>
-          <div style={{fontWeight:700,fontSize:16,letterSpacing:".04em"}}>MODEL LINK</div>
-          <button onClick={()=>setShowModel(false)} aria-label="Close" style={{marginLeft:"auto",background:"none",border:"none",color:"var(--mut)",fontSize:16,cursor:"pointer"}}>✕</button>
-        </div>
-        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.6}}>
-          Live scouting + tailored game plans need a model. Inside the Claude app, CLAUDE DIRECT links automatically. Standalone, paste an Anthropic or OpenRouter key — keys live in this browser only and are never baked into the file you share.
-        </p>
-        <SectionLabel>PROVIDER</SectionLabel>
-        <div style={{display:"flex",gap:6}}>
-          <button className={"tog"+(cfg.provider!=="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>CLAUDE DIRECT</button>
-          <button className={"tog"+(cfg.provider==="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"openrouter"}));setLinkState("untested");}}>OPENROUTER</button>
-        </div>
-        {cfg.provider==="openrouter"?<div>
-          <div className="field" style={{marginTop:12}}><label>
-            <span className="lbl">OPENROUTER API KEY</span>
-            <input className="mono" type="password" value={cfg.orKey} placeholder="sk-or-…"
-              onChange={e=>{setCfg(c=>({...c,orKey:e.target.value.trim()}));setLinkState("untested");}}/>
-          </label></div>
-          <div className="field" style={{marginTop:10}}><label>
-            <span className="lbl">MODEL SLUG</span>
-            <input className="mono" list="ormodels" value={cfg.orModel} placeholder="anthropic/claude-sonnet-4.5"
-              onChange={e=>setCfg(c=>({...c,orModel:e.target.value.trim()}))}/>
-            <datalist id="ormodels">{orList.map(id=><option key={id} value={id}/>)}</datalist>
-          </label></div>
-          <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
-            <button className="btn btn-sm" onClick={fetchModels}>⇣ FETCH MODEL LIST</button>
-            {orList.length>0&&<span className="mono" style={{fontSize:10,color:"var(--mut)"}}>{orList.length} MODELS LOADED — TYPE TO SEARCH</span>}
-          </div>
-          <p className="mono" style={{fontSize:10,color:"var(--dim)",margin:"8px 0 0",lineHeight:1.5}}>
-            Scouting attaches OpenRouter's web plugin for live listings — small added cost per scan. Game plans run on the base model.
-          </p>
-        </div>:<div>
-          <div className="field" style={{marginTop:12}}><label>
-            <span className="lbl">ANTHROPIC API KEY (OPTIONAL IN-APP)</span>
-            <input className="mono" type="password" value={cfg.apiKey} placeholder="sk-ant-…"
-              onChange={e=>{setCfg(c=>({...c,apiKey:e.target.value.trim()}));setLinkState("untested");}}/>
-          </label></div>
-          <div className="field" style={{marginTop:10}}><label>
-            <span className="lbl">MODEL</span>
-            <select className="mono" value={cfg.model} onChange={e=>setCfg(c=>({...c,model:e.target.value}))}>
-              <option value="claude-sonnet-4-6">claude-sonnet-4-6 · best scouting</option>
-              <option value="claude-haiku-4-5">claude-haiku-4-5 · faster / cheaper</option>
-            </select>
-          </label></div>
-        </div>}
-        <div style={{display:"flex",gap:8,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
-          <button className="btn btn-sm btn-cyan" onClick={testLink}>⌁ TEST LINK</button>
-          <span className="mono" style={{fontSize:11,fontWeight:700,letterSpacing:".08em",
-            color:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--mut)"}}>
-            {linkState==="ok"?"● LINK UP":linkState==="fail"?"● LINK DOWN":"○ UNTESTED"}
-          </span>
-        </div>
-        <SectionLabel>NO MODEL? NO PROBLEM</SectionLabel>
-        <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:0,lineHeight:1.6}}>
-          Flip on DEMO DATA in the console. You get clearly-labeled sample events plus playbook-template game plans — the full workflow, scoring, and exports, zero setup.
-        </p>
-        <div style={{marginTop:10}}>
-          <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)"}:{}}
-            onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
-        </div>
+      <SectionLabel>STATE-BY-STATE P0 HIGHLIGHTS</SectionLabel>
+      <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
+        <div><b style={{color:"var(--ink)"}}>TEXAS (DFW · Tyler · Austin · Houston · SATX):</b> 7 Flagship Shows Verified</div>
+        <div><b style={{color:"var(--ink)"}}>ALABAMA (Mobile · Baldwin · Foley · Gulf Shores · BHM):</b> 4 Flagship Events Verified</div>
+        <div><b style={{color:"var(--ink)"}}>GEORGIA (Atlanta · Perry · Duluth/Gwinnett):</b> 3 Flagship Expos Verified</div>
+        <div><b style={{color:"var(--ink)"}}>FLORIDA & CAROLINAS (Tampa · Charlotte):</b> Hurricane & Remodeling Expos Verified</div>
       </div>
-    </div>}
+
+      <div style={{marginTop:20}}>
+        <button className="btn btn-sm btn-cyan" onClick={()=>setShowCoverage(false)}>RETURN TO TERMINAL</button>
+      </div>
+    </ModalDrawer>
+
+    {/* ===== scoring modal drawer ===== */}
+    <ModalDrawer
+      id="modal-scoring"
+      titleId="scoring-dialog-title"
+      title="SCORING MODEL"
+      isOpen={showScoring}
+      onClose={()=>setShowScoring(false)}
+      triggerRef={scoringBtnRef}
+    >
+      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>Ported from the GA workbook. Edits re-score every event instantly and stick between sessions.</p>
+      <SectionLabel>FUNNEL DEFAULTS</SectionLabel>
+      <div className="grid2">
+        <Num label="AVG JOB VALUE" prefix="$" value={assump.jobValue} onChange={v=>setAssump(a=>({...a,jobValue:num(v)}))}/>
+        {[["engagement","ENGAGEMENT"],["qualified","QUALIFIED"],["capture","LEAD CAPTURE"],["appt","APPT SET"],["close","CLOSE RATE"]].map(([k,l])=>
+          <Num key={k} label={l} suffix="%" value={Math.round(assump[k]*1000)/10} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v)/100)}))}/>)}
+      </div>
+      <SectionLabel>SCORE TARGETS</SectionLabel>
+      <div className="grid3">
+        <Num label="LEADS" value={assump.targetLeads} onChange={v=>setAssump(a=>({...a,targetLeads:Math.max(1,num(v,1))}))}/>
+        <Num label="CPL" prefix="$" value={assump.targetCPL} onChange={v=>setAssump(a=>({...a,targetCPL:Math.max(1,num(v,1))}))}/>
+        <Num label="ROI" suffix="x" value={assump.targetROI} onChange={v=>setAssump(a=>({...a,targetROI:Math.max(0.1,num(v,1))}))}/>
+      </div>
+      <SectionLabel>WEIGHTS {Math.abs(weightSum-1)>0.001&&<span style={{color:"var(--hot)"}}> — SUM {weightSum.toFixed(2)}, SHOULD BE 1.00</span>}</SectionLabel>
+      <div className="grid2">
+        {[["wLead","LEAD VOLUME"],["wCPL","CPL EFFICIENCY"],["wROI","ROI"],["wHome","HOMEOWNER %"]].map(([k,l])=>
+          <Num key={k} label={l} step={0.05} value={assump[k]} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v))}))}/>)}
+      </div>
+      <SectionLabel>VERDICT THRESHOLDS</SectionLabel>
+      <div className="grid2">
+        <Num label="PRIME TARGET ≥" value={assump.strongAt} onChange={v=>setAssump(a=>({...a,strongAt:num(v)}))}/>
+        <Num label="WATCHLIST ≥" value={assump.condAt} onChange={v=>setAssump(a=>({...a,condAt:num(v)}))}/>
+      </div>
+      <div style={{marginTop:20}}>
+        <button className="btn btn-sm" onClick={()=>setAssump(DEFAULT_A)}>↺ RESET TO GA DEFAULTS</button>
+      </div>
+    </ModalDrawer>
+
+    {/* ===== model connection modal drawer ===== */}
+    <ModalDrawer
+      id="modal-model"
+      titleId="model-dialog-title"
+      title="MODEL LINK"
+      isOpen={showModel}
+      onClose={()=>setShowModel(false)}
+      triggerRef={modelBtnRef}
+    >
+      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.6}}>
+        Live web scouting and AI game plans run directly on your own API key (Bring Your Own Key · BYOK). Paste an Anthropic or OpenRouter key below — keys remain stored in this browser only (localStorage) and are never shared or sent to intermediary servers.
+      </p>
+      <SectionLabel>PROVIDER</SectionLabel>
+      <div style={{display:"flex",gap:6}}>
+        <button className={"tog"+(cfg.provider!=="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>ANTHROPIC DIRECT</button>
+        <button className={"tog"+(cfg.provider==="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"openrouter"}));setLinkState("untested");}}>OPENROUTER</button>
+      </div>
+      {cfg.provider==="openrouter"?<div>
+        <div className="field" style={{marginTop:12}}><label>
+          <span className="lbl">OPENROUTER API KEY</span>
+          <input className="mono" type="password" value={cfg.orKey} placeholder="sk-or-…"
+            onChange={e=>{setCfg(c=>({...c,orKey:e.target.value.trim()}));setLinkState("untested");}}/>
+        </label></div>
+        <div className="field" style={{marginTop:10}}><label>
+          <span className="lbl">MODEL SLUG</span>
+          <input className="mono" list="ormodels" value={cfg.orModel} placeholder="anthropic/claude-sonnet-4.5"
+            onChange={e=>setCfg(c=>({...c,orModel:e.target.value.trim()}))}/>
+          <datalist id="ormodels">{orList.map(id=><option key={id} value={id}/>)}</datalist>
+        </label></div>
+        <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
+          <button className="btn btn-sm" onClick={fetchModels}>⇣ FETCH MODEL LIST</button>
+          {orList.length>0&&<span className="mono" style={{fontSize:10,color:"var(--mut)"}}>{orList.length} MODELS LOADED — TYPE TO SEARCH</span>}
+        </div>
+        <p className="mono" style={{fontSize:10,color:"var(--dim)",margin:"8px 0 0",lineHeight:1.5}}>
+          Scouting attaches OpenRouter's web plugin for live listings — small added cost per scan. Game plans run on the base model.
+        </p>
+      </div>:<div>
+        <div className="field" style={{marginTop:12}}><label>
+          <span className="lbl">ANTHROPIC API KEY (BYOK)</span>
+          <input className="mono" type="password" value={cfg.apiKey} placeholder="sk-ant-…"
+            onChange={e=>{setCfg(c=>({...c,apiKey:e.target.value.trim()}));setLinkState("untested");}}/>
+        </label></div>
+        <div className="field" style={{marginTop:10}}><label>
+          <span className="lbl">MODEL</span>
+          <select className="mono" value={cfg.model} onChange={e=>setCfg(c=>({...c,model:e.target.value}))}>
+            <option value="claude-sonnet-4-6">claude-sonnet-4-6 · best scouting</option>
+            <option value="claude-haiku-4-5">claude-haiku-4-5 · faster / cheaper</option>
+          </select>
+        </label></div>
+      </div>}
+      <div style={{display:"flex",gap:8,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
+        <button className="btn btn-sm btn-cyan" onClick={testLink}>⌁ TEST LINK</button>
+        <span className="mono" style={{fontSize:11,fontWeight:700,letterSpacing:".08em",
+          color:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--mut)"}}>
+          {linkState==="ok"?"● LINK UP":linkState==="fail"?"● LINK DOWN":"○ UNTESTED"}
+        </span>
+      </div>
+      <SectionLabel>NO MODEL? NO PROBLEM</SectionLabel>
+      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:0,lineHeight:1.6}}>
+        Flip on DEMO DATA in the console. You get clearly-labeled sample events plus playbook-template game plans — the full workflow, scoring, and exports, zero setup.
+      </p>
+      <div style={{marginTop:10}}>
+        <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)"}:{}}
+          onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
+      </div>
+    </ModalDrawer>
   </div>;
 }
 
