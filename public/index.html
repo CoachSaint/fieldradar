@@ -271,22 +271,8 @@ function parseJSONText(text){
 }
 async function callModel(prompt,useSearch,cfg){
   cfg=cfg||{};
-  // 1. Automatic Zero-Config Serverless AI (built-in, no key required for Ty)
-  try {
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({prompt, useSearch})
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.content) return data.content;
-    }
-  } catch (err) {
-    console.warn("Serverless AI route error:", err);
-  }
 
-  // 2. Client-provided OpenRouter key if present
+  // 1. Client-provided OpenRouter key if present
   if(cfg.provider==="openrouter" && cfg.orKey){
     const body={model:cfg.orModel||"anthropic/claude-sonnet-4.5",max_tokens:1000,
       messages:[{role:"user",content:prompt}]};
@@ -299,11 +285,14 @@ async function callModel(prompt,useSearch,cfg){
       const data=await res.json();
       const msg=data.choices&&data.choices[0]&&data.choices[0].message;
       if(msg) return typeof msg.content==="string"?msg.content:(msg.content||[]).map(p=>(p&&p.text)||"").join("\n");
+    } else {
+      const errText = await res.text().catch(()=>"");
+      throw new Error("OpenRouter error (" + res.status + "): " + (errText || res.statusText));
     }
   }
 
-  // 3. Client-provided Anthropic key if present
-  if(cfg.apiKey){
+  // 2. Client-provided Anthropic key if present
+  if(cfg.provider!=="openrouter" && cfg.apiKey){
     const headers={"Content-Type":"application/json", "x-api-key":cfg.apiKey, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true"};
     const body={model:cfg.model||"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]};
     if(useSearch)body.tools=[{type:"web_search_20250305",name:"web_search"}];
@@ -311,6 +300,9 @@ async function callModel(prompt,useSearch,cfg){
     if(res.ok) {
       const data=await res.json();
       return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    } else {
+      const errText = await res.text().catch(()=>"");
+      throw new Error("Anthropic error (" + res.status + "): " + (errText || res.statusText));
     }
   }
 
@@ -827,14 +819,26 @@ function App(){
         setSearchStep("Generating benchmark demo signals for " + q + " (" + radius + " mi)...");
         found=scoutDemo(params);
       } else {
-        setSearchStep("Scanning live web events & vendor portals within " + radius + " mi of " + q + "...");
-        const liveFound = await scoutLive({...params,cfg});
-        setLinkState("ok");
-        // Deduplicate P0 verified + live scouted
-        const seenNames = new Set(p0Matches.map(e => e.name.toLowerCase()));
-        const uniqueLive = liveFound.filter(e => !seenNames.has(e.name.toLowerCase()));
-        const todayIso = new Date().toISOString().slice(0, 10);
-        found = [...p0Matches, ...uniqueLive].filter(e => (e.ed || e.sd || "9999") >= todayIso);
+        const hasKey = cfg.provider === "openrouter" ? !!cfg.orKey : !!cfg.apiKey;
+        if (!hasKey) {
+          if (p0Matches.length > 0) {
+            found = p0Matches;
+            setError("Showing verified catalog events. Connect an Anthropic or OpenRouter key in MODEL LINK to scout live web listings.");
+          } else {
+            setShowModel(true);
+            setError("No verified catalog events in this market. Connect an Anthropic or OpenRouter key in MODEL LINK to scout live web listings, or enable DEMO DATA.");
+            return;
+          }
+        } else {
+          setSearchStep("Scanning live web events & vendor portals within " + radius + " mi of " + q + "...");
+          const liveFound = await scoutLive({...params,cfg});
+          setLinkState("ok");
+          // Deduplicate P0 verified + live scouted
+          const seenNames = new Set(p0Matches.map(e => e.name.toLowerCase()));
+          const uniqueLive = liveFound.filter(e => !seenNames.has(e.name.toLowerCase()));
+          const todayIso = new Date().toISOString().slice(0, 10);
+          found = [...p0Matches, ...uniqueLive].filter(e => (e.ed || e.sd || "9999") >= todayIso);
+        }
       }
       setEvents(found);
       setLastMarket(q + " · " + radius + " MI");
@@ -855,20 +859,41 @@ function App(){
   }
   async function onPlan(id){
     const ev=events.find(x=>x.id===id);if(!ev)return;
+    const hasKey = cfg.provider === "openrouter" ? !!cfg.orKey : !!cfg.apiKey;
+    if (!cfg.demo && !hasKey) {
+      setShowModel(true);
+      setError("Connect an Anthropic or OpenRouter key in MODEL LINK to generate live AI game plans, or enable DEMO DATA.");
+      return;
+    }
     setPlanLoading(p=>({...p,[id]:true}));
     try{
       let plan;
-      if(cfg.demo){plan=planDemo(ev,lastMarket||market);}
-      else{try{plan=await planLive(ev,lastMarket||market,cfg);setLinkState("ok");}
-        catch(e){plan=planDemo(ev,lastMarket||market);}}
+      if(cfg.demo){
+        plan=planDemo(ev,lastMarket||market);
+      } else {
+        try {
+          plan=await planLive(ev,lastMarket||market,cfg);
+          setLinkState("ok");
+        } catch(e) {
+          setError("Game plan generation failed: " + (e.message || "Model error"));
+          setLinkState("fail");
+          return;
+        }
+      }
       setEvents(es=>es.map(x=>x.id===id?{...x,plan}:x));
       setOpen(o=>({...o,[id]:true}));
     }finally{setPlanLoading(p=>({...p,[id]:false}));}
   }
   async function testLink(){
+    const hasKey = cfg.provider==="openrouter" ? !!cfg.orKey : !!cfg.apiKey;
+    if(!hasKey){
+      setError("Enter an API key first before testing the link.");
+      setLinkState("fail");
+      return;
+    }
     setLinkState("untested");
     try{await callModel("Reply with exactly: OK",false,cfg);setLinkState("ok");}
-    catch(e){setLinkState("fail");}
+    catch(e){setLinkState("fail");setError("Link test failed: " + (e.message || "Unable to reach provider"));}
   }
   async function fetchModels(){
     try{const r=await fetch("https://openrouter.ai/api/v1/models");const d=await r.json();
@@ -896,9 +921,10 @@ function App(){
     : cfg.provider==="openrouter"
       ? (cfg.orKey
           ? {txt:linkState==="fail"?"OPENROUTER · DOWN":"OPENROUTER: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
-          : {txt:"OPENROUTER: NO KEY",c:"var(--hot)"})
-      : cfg.apiKey ? {txt:linkState==="fail"?"KEY · LINK DOWN":"CLAUDE: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
-      : {txt:linkState==="ok"?"CLAUDE: LINKED":linkState==="fail"?"NO MODEL LINK":"CLAUDE: AUTO",c:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--cyan)"};
+          : {txt:"CONNECT MODEL",c:"var(--amber)"})
+      : cfg.apiKey
+        ? {txt:linkState==="fail"?"CLAUDE · DOWN":"CLAUDE: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
+        : {txt:"CONNECT MODEL",c:"var(--amber)"};
 
   return <div style={{paddingBottom:110}}>
     {/* ===== header ===== */}
@@ -1371,11 +1397,11 @@ function App(){
       triggerRef={modelBtnRef}
     >
       <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.6}}>
-        Live scouting + tailored game plans need a model. Inside the Claude app, CLAUDE DIRECT links automatically. Standalone, paste an Anthropic or OpenRouter key — keys live in this browser only and are never baked into the file you share.
+        Live web scouting and AI game plans run directly on your own API key (Bring Your Own Key · BYOK). Paste an Anthropic or OpenRouter key below — keys remain stored in this browser only (localStorage) and are never shared or sent to intermediary servers.
       </p>
       <SectionLabel>PROVIDER</SectionLabel>
       <div style={{display:"flex",gap:6}}>
-        <button className={"tog"+(cfg.provider!=="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>CLAUDE DIRECT</button>
+        <button className={"tog"+(cfg.provider!=="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>ANTHROPIC DIRECT</button>
         <button className={"tog"+(cfg.provider==="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"openrouter"}));setLinkState("untested");}}>OPENROUTER</button>
       </div>
       {cfg.provider==="openrouter"?<div>
@@ -1399,7 +1425,7 @@ function App(){
         </p>
       </div>:<div>
         <div className="field" style={{marginTop:12}}><label>
-          <span className="lbl">ANTHROPIC API KEY (OPTIONAL IN-APP)</span>
+          <span className="lbl">ANTHROPIC API KEY (BYOK)</span>
           <input className="mono" type="password" value={cfg.apiKey} placeholder="sk-ant-…"
             onChange={e=>{setCfg(c=>({...c,apiKey:e.target.value.trim()}));setLinkState("untested");}}/>
         </label></div>

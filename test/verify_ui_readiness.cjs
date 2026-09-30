@@ -191,6 +191,14 @@ async function runVerification() {
     await scoutBtn.click();
     await page.waitForTimeout(1000);
 
+    // If Model Link drawer opened to prompt user for key, verify prompt and close it
+    const modelDrawer = page.locator('div[role="dialog"]');
+    if (await modelDrawer.isVisible()) {
+      record('Unconfigured scout honestly prompts Model Link dialog', true);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(200);
+    }
+
     // Context-aware empty state should now be displayed
     const emptyStateHeading = page.locator('text=NO QUALIFYING SIGNALS IN ANCHORAGE, AK');
     const hasEmptyState = await emptyStateHeading.isVisible();
@@ -204,7 +212,7 @@ async function runVerification() {
     // Dismissible error banner should be visible
     const alertBanner = page.locator('div[role="alert"]');
     const hasAlert = await alertBanner.isVisible();
-    record('Honest dismissible error banner displays on scout network failure', hasAlert);
+    record('Honest dismissible alert banner displays for unconfigured model guidance', hasAlert);
 
     if (hasAlert) {
       const dismissBtn = alertBanner.locator('button[aria-label*="Dismiss error"]').first();
