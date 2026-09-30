@@ -516,6 +516,8 @@ function SectionLabel({children}){return <div className="lbl" style={{color:"var
 function ModalDrawer({ id, titleId, title, isOpen, onClose, triggerRef, children }) {
   const drawerRef = useRef(null);
   const prevActiveRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -540,7 +542,7 @@ function ModalDrawer({ id, titleId, title, isOpen, onClose, triggerRef, children
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key === "Tab" && drawerRef.current) {
@@ -575,7 +577,7 @@ function ModalDrawer({ id, titleId, title, isOpen, onClose, triggerRef, children
         try { prevActiveRef.current.focus(); } catch (err) {}
       }
     };
-  }, [isOpen, onClose, triggerRef]);
+  }, [isOpen, triggerRef]);
 
   if (!isOpen) return null;
 

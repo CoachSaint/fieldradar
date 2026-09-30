@@ -157,6 +157,31 @@ async function runVerification() {
       });
       record(`${d.name} drawer contains initial focus`, activeInside);
 
+      if (d.name === 'MODEL') {
+        // A synthetic noncredential exercises the controlled input rerender;
+        // do not click Test Link or submit a request.
+        const keyInput = dialog.locator('input[type="password"]').first();
+        await keyInput.fill('SYNTHETIC-NONCREDENTIAL-FOCUS-CHECK');
+        await page.waitForTimeout(50);
+        const inputFocusRetained = await page.evaluate(() => {
+          const input = document.querySelector('#modal-model input[type="password"]');
+          return document.activeElement === input && input?.closest('[role="dialog"]') != null;
+        });
+        record('Model Link keeps key input focused while typing after rerender', inputFocusRetained);
+        await keyInput.fill('');
+
+        // Selecting a provider updates App state. The modal must retain focus
+        // through that rerender; this does not call the provider or use a key.
+        const providerSwitch = dialog.getByRole('button', { name: 'OPENROUTER', exact: true });
+        await providerSwitch.click();
+        await page.waitForTimeout(50);
+        const focusRetained = await page.evaluate(() =>
+          document.activeElement?.textContent?.trim() === 'OPENROUTER'
+          && document.activeElement?.closest('[role="dialog"]') != null
+        );
+        record('Model Link keeps focus on provider control after rerender', focusRetained);
+      }
+
       if (d.name === 'SCORING') {
         await page.screenshot({ path: path.join(evidenceDir, 'evidence_modal_scoring.png') });
       }
@@ -193,8 +218,9 @@ async function runVerification() {
 
     // If Model Link drawer opened to prompt user for key, verify prompt and close it
     const modelDrawer = page.locator('div[role="dialog"]');
-    if (await modelDrawer.isVisible()) {
-      record('Unconfigured scout honestly prompts Model Link dialog', true);
+    const promptVisible = await modelDrawer.isVisible();
+    record('Unconfigured scout honestly prompts Model Link dialog', promptVisible);
+    if (promptVisible) {
       await page.keyboard.press('Escape');
       await page.waitForTimeout(200);
     }
@@ -214,13 +240,14 @@ async function runVerification() {
     const hasAlert = await alertBanner.isVisible();
     record('Honest dismissible alert banner displays for unconfigured model guidance', hasAlert);
 
+    let isDismissed = false;
     if (hasAlert) {
       const dismissBtn = alertBanner.locator('button[aria-label*="Dismiss error"]').first();
       await dismissBtn.click();
       await page.waitForTimeout(200);
-      const isDismissed = !(await alertBanner.isVisible());
-      record('Error banner dismisses on click', isDismissed);
+      isDismissed = !(await alertBanner.isVisible());
     }
+    record('Error banner dismisses on click', isDismissed);
 
     await page.screenshot({ path: path.join(evidenceDir, 'evidence_empty_state.png') });
 
