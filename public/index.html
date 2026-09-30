@@ -58,7 +58,7 @@
   @media (prefers-reduced-motion:reduce){.sweep::before,.spin{animation:none}}
   .scorebar{position:absolute;left:0;top:0;bottom:0;width:6px}
   .card{position:relative;overflow:hidden}
-  .glow{text-shadow:0 0 18px currentColor}
+  .glow{text-shadow:0 0 8px currentColor}
   a{color:var(--cyan)}
   .drawer{position:fixed;inset:0;z-index:60;background:rgba(5,7,12,.72);display:flex;justify-content:flex-end}
   .drawer>div{background:var(--panel);border-left:1px solid var(--line2);width:min(430px,100%);height:100%;overflow-y:auto;padding:20px}
@@ -69,9 +69,38 @@
   .field .lbl{display:block;margin-bottom:5px}
   ::selection{background:rgba(34,211,238,.35)}
 
+  /* Existing terminal tokens govern the hierarchy and responsive controls. */
+  .terminal-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 16px}
+  .terminal-intro h1{font-size:28px;line-height:1.15;letter-spacing:-.02em;margin:0 0 6px}
+  .terminal-intro p{font-size:12px;line-height:1.6;color:var(--mut);margin:0;max-width:58ch}
+  .type-filter{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .type-filter summary{cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.05em;padding:8px 0}
+  .type-filter summary:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+  .type-filter summary span{color:var(--cyan);margin-left:10px}
+  .catalog-note{font-size:11px;line-height:1.65;color:var(--mut);margin:12px 0 0;max-width:78ch}
+  .queue-title{font-size:18px;margin:20px 0 8px;letter-spacing:.01em}
+  main.wrap{padding-bottom:80px}
+
   /* Mobile-First Touch & Layout Optimizations */
   @media (max-width: 640px) {
     .mobile-hide { display: none !important; }
+    .terminal-intro h1{font-size:24px}
+    .terminal-intro{margin-bottom:14px}
+    .type-filter summary{min-height:44px;display:list-item;padding:12px 0}
+    .tog,.btn,.btn-sm,header .chip{min-height:44px}
+    .type-filter .tog{text-align:left;flex:1 1 145px;font-size:10px}
+    .catalog-note{font-size:11px}
+    .signal-totals{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+    .signal-totals .panel{padding:10px 8px!important}
+    .signal-totals .lbl{font-size:8px;letter-spacing:.07em}
+    header .wrap{gap:10px!important}
+    .export-bar .wrap{flex-wrap:wrap}
+    .export-bar .lbl{flex:1 0 100%;font-size:9px}
+    .export-bar .btn{flex:1;justify-content:center}
+    .card .mono{overflow-wrap:anywhere}
+    .card h3{font-size:16px!important;line-height:1.35!important}
+    .card button[aria-expanded]{min-height:44px}
+
     body {
       padding-bottom: env(safe-area-inset-bottom, 20px);
     }
@@ -85,12 +114,12 @@
     .btn {
       padding: 10px 14px;
       font-size: 11.5px;
-      min-height: 40px;
+      min-height: 44px;
     }
     .btn-sm {
       padding: 9px 12px;
       font-size: 11px;
-      min-height: 38px;
+      min-height: 44px;
     }
     .chip {
       padding: 4px 8px;
@@ -485,6 +514,21 @@ function toICS(events,A){
   return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//FieldRadar//Event Targeting//EN",ve,"END:VCALENDAR"].join("\r\n");
 }
 
+/* Calendar draft only: opening the link does not book or verify an event. */
+function buildGoogleCalUrl(ev,A){
+  const params=new URLSearchParams({action:"TEMPLATE",text:"Booth: "+ev.name,
+    location:[ev.venue,ev.city].filter(Boolean).join(", ")});
+  const validDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(value||"")&&Number.isFinite(Date.parse(value+"T00:00:00Z"));
+  if(validDate(ev.sd)){
+    const end=new Date((validDate(ev.ed)?ev.ed:ev.sd)+"T00:00:00Z");
+    end.setUTCDate(end.getUTCDate()+1);
+    params.set("dates",ev.sd.replace(/-/g,"")+"/"+end.toISOString().slice(0,10).replace(/-/g,""));
+  }
+  const m=computeEvent(ev,A);
+  params.set("details","Confirm dates and vendor availability with the organizer. Model projections: "+Math.round(m.leads)+" leads, CPL "+fmt$(m.cpl)+", ROI "+fmtX(m.roi)+"."+(ev.src?" Source: "+ev.src:""));
+  return "https://calendar.google.com/calendar/render?"+params.toString();
+}
+
 /* ============ UI atoms ============ */
 function ScoreNum({score}){
   const c=rampColor(score);
@@ -623,6 +667,7 @@ function App(){
   const [radius,setRadius]=useState(50);
   const [months,setMonths]=useState(6);
   const [types,setTypes]=useState(EVENT_TYPES);
+  const [typesExpanded,setTypesExpanded]=useState(()=>window.innerWidth>640);
   const [events,setEvents]=useState([]);
   const [lastMarket,setLastMarket]=useState("");
   const [loading,setLoading]=useState(false);
@@ -961,6 +1006,12 @@ function App(){
     </header>
 
     <main className="wrap" style={{paddingTop:18}}>
+      <div className="terminal-intro">
+        <div>
+          <h1>Your field opportunity desk.</h1>
+          <p>Review event signals, compare modeled returns, and confirm the details with organizers.</p>
+        </div>
+      </div>
       {/* ===== command console ===== */}
       <section className="panel" style={{padding:16}}>
         <div className="lbl" style={{marginBottom:10,color:"var(--cyan)"}}>▸ Scan parameters</div>
@@ -1030,11 +1081,14 @@ function App(){
             <option value={6}>6 MONTHS</option><option value={12}>12 MONTHS</option>
           </select>
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
+        <details className="type-filter" open={typesExpanded} onToggle={e=>setTypesExpanded(e.currentTarget.open)}>
+          <summary>EVENT TYPES <span>{types.length} / {EVENT_TYPES.length} selected</span></summary>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
           {EVENT_TYPES.map(t=>{const on=types.includes(t);
             return <button key={t} className={"tog"+(on?" on":"")}
-              onClick={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}>{t}</button>;})}
-        </div>
+              aria-pressed={on} onClick={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}>{t}</button>;})}
+          </div>
+        </details>
         <div style={{display:"flex",gap:10,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
           <button className="btn btn-hot" onClick={()=>onScout()} disabled={loading}>
             {loading?<span className="spin">◌</span>:"◉"} {loading?"SCANNING…":"SCOUT EVENTS"}
@@ -1071,11 +1125,11 @@ function App(){
 
       {/* ===== signal summary + ramp legend ===== */}
       {events.length>0&&<section style={{marginTop:14}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(118px,1fr))",gap:8}}>
+        <div className="signal-totals" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(118px,1fr))",gap:8}}>
           {[["SIGNALS",fmtN(totals.count)],
             ["PRIME",fmtN(totals.prime),totals.prime?"var(--hot)":undefined],
             ["PROJ. LEADS",fmtN(totals.leads,0),"var(--cyan)"],
-            ["SPEND",fmtK(totals.cost)],
+            ["EST. SPEND",fmtK(totals.cost)],
             ["PROJ. REVENUE",fmtK(totals.revenue),"var(--grn)"]].map(([l,v,c])=>
             <div key={l} className="panel" style={{padding:"10px 12px"}}><Stat label={l} value={v} color={c}/></div>)}
         </div>
@@ -1087,11 +1141,13 @@ function App(){
         </div>
       </section>}
 
+      <p className="catalog-note">Catalog signals are not a live availability feed. Confirm dates, attendance and vendor openings with the organizer. Leads and revenue are model projections.</p>
+      {events.length>0&&<h2 className="queue-title">Opportunity queue</h2>}
       {/* ===== sort ===== */}
       {events.length>1&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:16}}>
         <span className="lbl">RANK BY</span>
         {[["score","SCORE"],["date","DATE"],["cpl","CPL"]].map(([k,l])=>
-          <button key={k} className={"tog"+(sortBy===k?" on":"")} onClick={()=>setSortBy(k)}>{l}</button>)}
+          <button key={k} aria-pressed={sortBy===k} className={"tog"+(sortBy===k?" on":"")} onClick={()=>setSortBy(k)}>{l}</button>)}
         {anyDemo&&<span className="chip" style={{marginLeft:"auto",borderColor:"var(--amber)",color:"var(--amber)"}}>SAMPLE DATA</span>}
       </div>}
 
@@ -1144,7 +1200,7 @@ function App(){
               <button className="btn btn-sm" style={ev.status==="booked"?{borderColor:"var(--grn)",color:"var(--grn)"}:{}}
                 onClick={()=>setStatus(ev.id,ev.status==="booked"?"new":"booked")}>✓ BOOKED</button>
               <button className="btn btn-sm btn-ghost" onClick={()=>setStatus(ev.id,skipped?"new":"skip")}>{skipped?"UNSKIP":"SKIP"}</button>
-              <button onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}
+              <button aria-expanded={isOpen} aria-label={(isOpen?"Close details for ":"Adjust details for ")+ev.name} onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}
                 style={{marginLeft:"auto",background:"none",border:"none",color:"var(--cyan)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:".1em",cursor:"pointer"}}>
                 {isOpen?"CLOSE ▴":"ADJUST ▾"}
               </button>
@@ -1300,7 +1356,7 @@ function App(){
     </main>
 
     {/* ===== export bar ===== */}
-    {events.length>0&&<div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"rgba(7,9,15,.94)",backdropFilter:"blur(6px)",borderTop:"1px solid var(--line2)",padding:"10px 16px calc(10px + env(safe-area-inset-bottom))"}}>
+    {events.length>0&&<div className="export-bar" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"rgba(7,9,15,.94)",backdropFilter:"blur(6px)",borderTop:"1px solid var(--line2)",padding:"10px 16px calc(10px + env(safe-area-inset-bottom))"}}>
       <div className="wrap" style={{display:"flex",gap:8,alignItems:"center",padding:0}}>
         <span className="lbl" style={{marginRight:"auto"}}>EXPORT → DEVICE</span>
         <button className="btn btn-sm btn-hot" onClick={exportCSV}>⬇ CSV (MODEL)</button>

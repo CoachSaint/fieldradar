@@ -124,6 +124,21 @@ async function runVerification() {
     await mobilePage.screenshot({ path: path.join(evidenceDir, 'evidence_mobile.png') });
     await mobileContext.close();
 
+    console.log('\n=== EVENT DETAIL AND CALENDAR RECOVERY ===');
+    const detailToggle = page.locator('article.card button[aria-expanded]').first();
+    await detailToggle.click();
+    record('Event details expand without tearing down the application', await detailToggle.getAttribute('aria-expanded') === 'true');
+    const calendarLink = page.locator('article.card a[href^="https://calendar.google.com/calendar/render?"]').first();
+    const calendarUrl = new URL(await calendarLink.getAttribute('href'));
+    record('Expanded details provide a Google Calendar draft link', calendarUrl.searchParams.get('action') === 'TEMPLATE');
+    const calendarDates = await page.evaluate(() => {
+      const url = new URL(buildGoogleCalUrl({ name: 'Calendar boundary check', sd: '2026-12-31', ed: '2027-01-02' }, DEFAULT_A));
+      return { dates: url.searchParams.get('dates'), details: url.searchParams.get('details') };
+    });
+    record('Calendar all-day end date is exclusive across year boundary', calendarDates.dates === '20261231/20270103');
+    record('Calendar draft distinguishes projections and organizer confirmation', calendarDates.details.includes('Model projections') && calendarDates.details.includes('Confirm dates'));
+    await detailToggle.click();
+
     console.log('\n=== ACCESSIBLE MODAL DIALOGS & FOCUS TRAPPING ===');
     // 5. Modal Dialogs: SCORING, COVERAGE, MODEL
     const dialogTests = [
