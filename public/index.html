@@ -3,167 +3,376 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>FieldRadar — Event Targeting Terminal</title>
+<title>FieldRadar — Field Opportunity Desk</title>
 <link rel="icon" type="image/svg+xml" href="assets/jtf-quarters-mark.svg" />
-<meta name="description" content="FieldRadar — Event Targeting Terminal. Field sales intelligence, event scouting, and modeled returns for contractors." />
-<meta property="og:title" content="FieldRadar — Event Targeting Terminal" />
+<meta name="description" content="FieldRadar — Field Opportunity Desk. Field sales intelligence, event scouting, and modeled returns for contractors." />
+<meta property="og:title" content="FieldRadar — Field Opportunity Desk" />
 <meta property="og:description" content="Field sales intelligence, event scouting, and modeled returns for contractors. Powered by JTF Software Solutions." />
 <meta property="og:type" content="website" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
 <style>
+  /* ==========================================================================
+     FieldRadar — field opportunity desk
+     Direction: calm warm-neutral paper, near-black ink, ONE action accent (blue).
+     Semantic color is reserved:
+       green intensity  = score tier (pass < watchlist < prime) and "meets target"
+       amber            = caution (sample data, template, waitlist, not connected)
+       red              = error / invalid
+     Type: IBM Plex Sans for UI. Tabular figures for every number. Mono only for
+     codes the user types or reads literally (API keys, model slugs).
+     ========================================================================== */
   :root{
-    --bg:#090D16; --panel:#0E1424; --panel2:#141B2D; --panel-hover:#1A233A;
-    --line:#1E293F; --line2:#283754;
-    --ink:#F8FAFC; --ink-dim:#94A3B8; --mut:#9BB0D1; --dim:#788CAE;
-    --accent:#2563EB; --accent-hover:#1D4ED8; --accent-subtle:rgba(37,99,235,0.12);
-    --cyan:#3B82F6; --amber:#F59E0B; --hot:#EF4444; --grn:#10B981; --org:#F97316; --teal:#0D9488; --cold:#5A8EB9;
-    --disp:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --bg:#F3F2EE; --surface:#FFFFFF; --surface-2:#F8F7F4; --surface-3:#EFEDE7;
+    --line:#DEDBD2; --line-strong:#C2BEB2;
+    --ink:#14181F; --ink-2:#3D4553; --ink-3:#586170;
+    --accent:#1D4FD7; --accent-hover:#1640B0; --accent-tint:#E8EEFC; --on-accent:#FFFFFF;
+    --tier-pass:#7C8696; --tier-watch:#4C9A76; --tier-prime:#0B7A4A;
+    --good:#0B6B43; --good-tint:#E3F3EB;
+    --caution:#7A4F00; --caution-tint:#FFF3D1; --caution-line:#E6C77A;
+    --error:#B42318; --error-tint:#FDECEA; --error-line:#F0B4AE;
+    --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --radius:6px;
+    --header-h:64px;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
-  body{background:var(--bg);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased;line-height:1.5}
-  .bggrid{display:none}
+  html{scroll-padding-top:calc(var(--header-h) + 20px);scroll-padding-bottom:84px}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
   #root{position:relative;z-index:1}
-  .wrap{max-width:920px;margin:0 auto;padding:0 16px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
   .mono{font-family:var(--mono)}
-  .lbl{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
-  input,select,button,textarea{font-family:inherit}
-  input,select{background:var(--panel2);border:1px solid var(--line2);color:var(--ink);border-radius:6px;padding:10px 12px;font-size:14px;font-weight:500;outline:none;width:100%;transition:border-color .15s}
-  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  input::placeholder{color:var(--dim)}
-  select{appearance:none;background-image:linear-gradient(45deg,transparent 49%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 51%);background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:26px}
-  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);
-    font-family:var(--mono);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
-    padding:10px 16px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;white-space:nowrap}
-  .btn:hover{background:var(--panel-hover);border-color:var(--line2)}
-  .btn:active{transform:translateY(1px)}
-  .btn:disabled{opacity:.45;cursor:default;transform:none}
-  .btn-hot{background:var(--accent);border-color:var(--accent);color:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.25)}
-  .btn-hot:hover{background:var(--accent-hover);border-color:var(--accent-hover);box-shadow:0 2px 4px rgba(0,0,0,0.3);transform:none}
-  .btn-cyan{border-color:var(--line2);color:var(--ink);background:var(--panel2)}
-  .btn-cyan:hover{border-color:var(--accent);color:#FFFFFF}
-  .btn-ghost{color:var(--mut);background:transparent;border-color:transparent}
-  .btn-ghost:hover{background:var(--panel2);color:var(--ink);border-color:var(--line)}
-  .btn-sm{padding:7px 12px;font-size:11px}
-  .chip{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line2);color:var(--mut);background:var(--panel2);padding:3px 8px;border-radius:4px}
-  .tog{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;border-radius:4px;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--mut);transition:all .15s ease}
-  .tog.on{border-color:var(--accent);color:#FFFFFF;background:var(--accent-subtle)}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px}
-  .sweep{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line2);position:relative;display:flex;align-items:center;justify-content:center;flex:none;background:var(--panel2)}
-  .sweep::before{content:"";position:absolute;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--accent)}
-  .sweep::after{content:"";position:absolute;width:2px;height:2px;border-radius:50%;background:var(--accent)}
-  .spin{display:inline-block;animation:spin 1s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .scorebar{position:absolute;left:0;top:0;bottom:0;width:4px}
-  .card{position:relative;overflow:hidden;transition:border-color .15s}
-  .card:hover{border-color:var(--line2)}
-  .glow{text-shadow:none}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  button,input,select,textarea{font-family:inherit}
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
-  .drawer{position:fixed;inset:0;z-index:60;background:rgba(5,7,12,.75);display:flex;justify-content:flex-end}
-  .drawer>div{background:var(--panel);border-left:1px solid var(--line2);width:min(440px,100%);height:100%;overflow-y:auto;padding:24px}
+  ::selection{background:rgba(29,79,215,.22)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---------- controls ---------- */
+  .field{display:block;min-width:0}
+  .field-label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin:0 0 6px}
+  .input,.select{width:100%;background:var(--surface);border:1px solid var(--line-strong);color:var(--ink);border-radius:var(--radius);padding:10px 12px;font-size:15px;font-weight:400;min-height:42px;outline:none;transition:border-color .12s,box-shadow .12s}
+  .input::placeholder{color:var(--ink-3)}
+  .input:hover,.select:hover{border-color:var(--ink-3)}
+  .input:focus-visible,.select:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,79,215,.18);outline:none}
+  .input.is-code{font-family:var(--mono);font-size:14px}
+  .select{appearance:none;padding-right:34px;background-image:linear-gradient(45deg,transparent 49%,var(--ink-2) 50%),linear-gradient(135deg,var(--ink-2) 50%,transparent 51%);background-position:calc(100% - 18px) 55%,calc(100% - 13px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+  .input-affix{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius);padding:0 12px;min-height:42px;transition:border-color .12s,box-shadow .12s}
+  .input-affix:hover{border-color:var(--ink-3)}
+  .input-affix:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,79,215,.18)}
+  .input-affix .input{border:0;background:transparent;padding:9px 0;min-height:38px;box-shadow:none;border-radius:0}
+  .input-affix .input:focus-visible{box-shadow:none}
+  .affix{color:var(--ink-3);font-size:14px;flex:none}
+  .affix:first-child{padding-right:6px}
+  .affix:last-child{padding-left:6px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-weight:600;font-size:14px;line-height:1.2;padding:9px 14px;min-height:40px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .12s,border-color .12s,color .12s}
+  .btn:hover{background:var(--surface-3);border-color:var(--ink-3);text-decoration:none}
+  .btn:active{background:var(--line)}
+  .btn:disabled{opacity:.55;cursor:default}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:var(--on-accent)}
+  .btn-primary:active{background:var(--accent-hover)}
+  .btn-quiet{background:transparent;border-color:transparent;color:var(--ink-2)}
+  .btn-quiet:hover{background:var(--surface-3);border-color:transparent;color:var(--ink)}
+  .btn-sm{min-height:36px;padding:7px 12px;font-size:13px}
+  .btn-block{width:100%}
+  .link-btn{background:none;border:0;padding:4px 0;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer}
+  .link-btn:hover{text-decoration:underline}
+  .link-btn.is-danger{color:var(--error)}
+  .spin{display:inline-block;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .switch{display:flex;align-items:center;gap:10px;background:none;border:0;padding:6px 0;font-size:14px;font-weight:500;color:var(--ink);cursor:pointer;text-align:left}
+  .switch-track{position:relative;width:36px;height:20px;border-radius:10px;background:var(--line-strong);flex:none;transition:background .15s}
+  .switch-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+  .switch[aria-checked="true"] .switch-track{background:var(--ink)}
+  .switch[aria-checked="true"] .switch-thumb{transform:translateX(16px)}
+  .switch-hint{display:block;font-size:12px;font-weight:400;color:var(--ink-3)}
+
+  .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+  .seg button{background:transparent;border:0;border-right:1px solid var(--line);padding:7px 14px;min-height:36px;font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer}
+  .seg button:last-child{border-right:0}
+  .seg button:hover{background:var(--surface-3);color:var(--ink)}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .seg button:focus-visible{outline-offset:-2px}
+
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none;background:var(--tier-pass)}
+  .dot-pass{background:var(--tier-pass)} .dot-watch{background:var(--tier-watch)} .dot-prime{background:var(--tier-prime)}
+  .dot-good{background:var(--tier-prime)} .dot-caution{background:#C98A00} .dot-error{background:var(--error)} .dot-off{background:var(--line-strong)}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:4px;border:1px solid var(--line-strong);color:var(--ink-2);background:var(--surface-2)}
+  .tag-caution{background:var(--caution-tint);border-color:var(--caution-line);color:var(--caution)}
+
+  /* ---------- header ---------- */
+  .app-header{position:sticky;top:0;z-index:40;background:var(--surface);border-bottom:1px solid var(--line-strong)}
+  .hdr-inner{display:flex;align-items:center;gap:20px;min-height:var(--header-h);flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--ink)}
+  .brand-name{font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .attrib{display:flex;align-items:center;gap:8px;padding-left:20px;border-left:1px solid var(--line);color:var(--ink-2);font-size:13px;font-weight:500;text-decoration:none}
+  .attrib:hover{color:var(--ink);text-decoration:none}
+  .hdr-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .hdr-nav{display:flex;align-items:center;gap:2px}
+  .model-status{border-color:var(--line-strong);color:var(--ink);background:var(--surface)}
+  .model-status:hover{background:var(--surface-3)}
+
+  /* ---------- page ---------- */
+  .app{padding-bottom:96px}
+  main.wrap{padding-top:28px}
+  .intro{margin:0 0 22px;max-width:70ch}
+  .intro h1{font-size:34px;font-weight:700;line-height:1.1;letter-spacing:-.025em;margin:0 0 8px}
+  .intro p{font-size:16px;color:var(--ink-2);margin:0}
+  .workbench{display:grid;grid-template-columns:320px minmax(0,1fr);gap:28px;align-items:start}
+  .finder{position:sticky;top:calc(var(--header-h) + 16px);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:18px}
+  .panel-title{font-size:16px;font-weight:700;margin:0 0 14px;letter-spacing:-.005em}
+  .finder .field+.field,.finder .row-2{margin-top:14px}
+  .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .finder .row-2 .field{margin-top:0}
+  .finder-actions{display:grid;gap:8px;margin-top:16px}
+  .finder-foot{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:4px}
+  .last-scan{margin:6px 0 0;font-size:12.5px;color:var(--ink-3);overflow-wrap:anywhere}
+  .last-scan b{color:var(--ink-2);font-weight:600}
+
+  .types{margin-top:14px;border-top:1px solid var(--line);padding-top:6px}
+  .types summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;min-height:42px;font-size:13px;font-weight:600}
+  .types summary::-webkit-details-marker{display:none}
+  .types summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:rotate(45deg);transition:transform .15s;margin-right:4px}
+  .types[open] summary::after{transform:rotate(-135deg)}
+  .types-count{font-weight:500;color:var(--ink-2)}
+  .types-tools{display:flex;gap:16px;margin:0 0 4px}
+  .check-list{list-style:none;margin:0;padding:0;max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2)}
+  .check-list li+li{border-top:1px solid var(--line)}
+  .check{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:14px;cursor:pointer;min-height:40px}
+  .check:hover{background:var(--surface-3)}
+  .check input{width:18px;height:18px;margin:0;accent-color:var(--accent);flex:none}
+
+  .suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:0 10px 24px rgba(20,24,31,.16);overflow:hidden}
+  .suggest-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+  .suggest-item:last-child{border-bottom:0}
+  .suggest-item:hover{background:var(--surface-3)}
+  .suggest-top{display:flex;align-items:center;gap:8px}
+  .suggest-name{font-weight:600;font-size:14px}
+  .suggest-sub{font-size:12px;color:var(--ink-3)}
+  .suggest-src{margin-left:auto;font-size:11px;font-weight:600;color:var(--ink-3);border:1px solid var(--line-strong);border-radius:4px;padding:1px 6px}
+
+  .banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:var(--radius);border:1px solid var(--line-strong);background:var(--surface);margin-bottom:14px;font-size:14px}
+  .banner-error{background:var(--error-tint);border-color:var(--error-line);color:var(--error);font-weight:600}
+  .banner-body{flex:1 1 220px}
+  .banner-actions{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .banner-error .btn{color:var(--ink)}
+  .banner-status strong{display:block;font-size:14px}
+  .banner-status span{color:var(--ink-2);font-size:13px}
+
+  /* ---------- KPI strip ---------- */
+  .kpi{display:grid;grid-template-columns:auto minmax(0,1fr);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+  .kpi-facts{display:grid;grid-template-columns:repeat(2,minmax(110px,1fr));border-right:1px solid var(--line-strong)}
+  .kpi-proj{min-width:0;display:flex;flex-direction:column}
+  .kpi-proj-cap{font-size:12px;font-weight:600;color:var(--ink-2);background:var(--surface-3);padding:5px 14px;border-bottom:1px solid var(--line)}
+  .kpi-proj-cells{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:1}
+  .kpi-cell{padding:12px 16px;min-width:0}
+  .kpi-facts .kpi-cell{display:flex;flex-direction:column;justify-content:flex-end}
+  .kpi-cell+.kpi-cell{border-left:1px solid var(--line)}
+  .kpi-label{font-size:12.5px;font-weight:500;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+  .kpi-value{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:2px;white-space:nowrap}
+  .note{display:flex;gap:10px;align-items:flex-start;margin:12px 0 0;padding:10px 14px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--ink-3);border-radius:var(--radius);font-size:13.5px;line-height:1.5;color:var(--ink)}
+  .note svg{flex:none;margin-top:2px;color:var(--ink-2)}
+  .note strong{font-weight:600}
+
+  /* ---------- queue ---------- */
+  .queue-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin:26px 0 12px}
+  .queue-head h2{font-size:22px;font-weight:700;letter-spacing:-.015em;margin:0}
+  .queue-tools{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .sort-label{font-size:13px;font-weight:600;color:var(--ink-2)}
+  .score-key{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px;font-size:12.5px;color:var(--ink-2)}
+  .key-track{display:flex;width:120px;height:6px;border-radius:3px;overflow:hidden;gap:2px;flex:none}
+  .key-track i{display:block;height:100%}
+  .key-track .k-pass{background:var(--tier-pass)} .key-track .k-watch{background:var(--tier-watch)} .key-track .k-prime{background:var(--tier-prime)}
+  .key-labels{display:flex;gap:16px;flex-wrap:wrap;list-style:none;margin:0;padding:0}
+  .key-labels li{display:flex;align-items:center;gap:6px}
+
+  /* ---------- opportunity card ---------- */
+  .card{background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;margin-top:12px;overflow:hidden}
+  .card:hover{border-color:var(--ink-3)}
+  .card.is-skipped{background:var(--surface-2)}
+  .card.is-skipped .card-title{color:var(--ink-2);text-decoration:line-through;text-decoration-color:var(--line-strong)}
+  .card-main{display:flex;gap:18px;padding:18px 18px 14px}
+  .score{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0 10px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface-2);align-self:flex-start}
+  .score-num{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .score-tier{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-2)}
+  .card-body{min-width:0;flex:1}
+  .card-title{margin:0 0 6px;font-size:20px;font-weight:700;letter-spacing:-.015em;line-height:1.2;overflow-wrap:anywhere}
+  .meta{margin:0;font-size:14px;color:var(--ink-2)}
+  .meta .when{color:var(--ink);font-weight:600;white-space:nowrap}
+  .meta>span{display:inline-block}
+  .meta>span:not(:last-child)::after{content:"·";content:"·" / "";margin:0 8px;color:var(--ink-3)}
+  .meta-where{margin-top:2px}
+  .meta-status{display:flex;flex-wrap:wrap;margin-top:8px;gap:6px 12px;align-items:center}
+  .meta-status>span{display:inline-flex;align-items:center;gap:6px}
+  .meta-status>span::after{content:none!important}
+  .status-text{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2)}
+  .card-note{margin:8px 0 0;font-size:13.5px;color:var(--ink-3)}
+  .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface-2)}
+  .stats>div{padding:11px 18px;min-width:0}
+  .stats>div+div{border-left:1px solid var(--line)}
+  .stats dt{font-size:12.5px;font-weight:500;color:var(--ink-2)}
+  .stats dd{margin:2px 0 0;font-size:20px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+  .stats .is-good dd{color:var(--good)}
+  .card-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px}
+  .act-group{display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--radius);overflow:hidden}
+  .act-group button{background:var(--surface);border:0;border-right:1px solid var(--line);padding:7px 14px;min-height:36px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .act-group button:last-child{border-right:0}
+  .act-group button:hover{background:var(--surface-3)}
+  .act-group button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .act-group button:focus-visible{outline-offset:-2px}
+  .toggle{margin-left:auto;display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:8px 6px;min-height:36px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;border-radius:var(--radius)}
+  .toggle:hover{background:var(--surface-3)}
+  .chev{width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .15s}
+  .toggle[aria-expanded="true"] .chev{transform:rotate(-135deg);margin-top:3px}
+
+  .detail{border-top:1px solid var(--line-strong);background:var(--surface-2);padding:18px;display:grid;gap:18px}
+  .detail h4{margin:0 0 10px;font-size:15px;font-weight:700}
+  .detail-sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .detail-head h4{margin:0}
+  .detail-head .tag{margin-left:auto}
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 20px;margin:0}
+  .facts dt{font-size:12.5px;font-weight:500;color:var(--ink-3)}
+  .facts dd{margin:1px 0 0;font-size:14px;color:var(--ink);overflow-wrap:anywhere}
+  .facts .is-wide{grid-column:1/-1}
+  .vendor-action-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .assump-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+  .components{display:flex;gap:6px 18px;flex-wrap:wrap;margin:14px 0 0;font-size:13px;color:var(--ink-2)}
+  .components b{color:var(--ink);font-weight:600}
+  .plan{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--ink);border-radius:var(--radius);padding:14px 16px}
+  .plan p{margin:0 0 8px;font-size:14px;line-height:1.55;display:grid;grid-template-columns:84px minmax(0,1fr);gap:0 12px}
+  .plan p b{font-weight:700}
+  .detail-foot{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .detail-foot .link-btn:last-child{margin-left:auto}
+
+  .empty{margin-top:14px;text-align:center;padding:56px 20px;color:var(--ink-2);background:var(--surface);border:1px dashed var(--line-strong);border-radius:8px}
+  .empty h2{margin:0 0 6px;font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+  .empty p{margin:0 auto;max-width:480px;font-size:14.5px}
+  .empty-actions{display:flex;gap:8px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+
+  /* ---------- footer + export ---------- */
+  .site-foot{margin-top:48px;padding-top:24px;border-top:1px solid var(--line-strong);display:flex;gap:18px 32px;align-items:center;flex-wrap:wrap}
+  .site-foot-brand{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
+  .site-foot-brand span{font-weight:700;font-size:14px;letter-spacing:.02em}
+  .site-foot-text{font-size:13px;color:var(--ink-2)}
+  .site-foot-text a{color:var(--ink);font-weight:600;text-decoration:underline}
+  .site-foot-legal{width:100%;font-size:12px;color:var(--ink-3)}
+  .export-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line-strong);padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
+  .export-inner{display:flex;align-items:center;gap:8px}
+  .export-label{margin-right:auto;font-size:13px;color:var(--ink-2)}
+  .export-label b{color:var(--ink)}
+
+  /* ---------- drawers ---------- */
+  .drawer{position:fixed;inset:0;z-index:60;background:rgba(20,24,31,.5);display:flex;justify-content:flex-end}
+  .drawer>div{background:var(--surface);border-left:1px solid var(--line-strong);width:min(460px,100%);height:100%;overflow-y:auto;padding:22px 24px 28px}
+  .drawer-head{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .drawer-head h2{font-size:20px;font-weight:700;letter-spacing:-.015em;margin:0}
+  .drawer-lede{font-size:14px;color:var(--ink-2);margin:14px 0 0;line-height:1.55}
+  .drawer h3.sec{font-size:13px;font-weight:700;color:var(--ink);margin:22px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-  @media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
-  .field label{display:block}
-  .field .lbl{display:block;margin-bottom:5px}
-  ::selection{background:rgba(37,99,235,.3)}
+  .metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .metric{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;background:var(--surface-2)}
+  .metric .kpi-value{font-size:22px}
+  .plain-list{margin:0;padding:12px 14px;list-style:none;display:grid;gap:8px;font-size:13.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius)}
+  .plain-list b{font-weight:600}
+  .seg-wide{display:flex}
+  .seg-wide button{flex:1}
+  .link-state{font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--ink-2)}
+  .field-hint{font-size:12.5px;color:var(--ink-3);margin:6px 0 0}
+  .warn-text{color:var(--error);font-weight:600;font-size:12.5px;margin-left:6px}
 
-  /* Terminal layout, hierarchy, and typography */
-  .terminal-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 20px}
-  .terminal-intro h1{font-size:26px;font-weight:700;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px;color:var(--ink)}
-  .terminal-intro p{font-size:13px;line-height:1.55;color:var(--mut);margin:0;max-width:62ch}
-  .type-filter{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
-  .type-filter summary{cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.06em;padding:8px 0}
-  .type-filter summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
-  .type-filter summary span{color:var(--ink);margin-left:10px}
-  .catalog-note{font-size:11.5px;line-height:1.6;color:var(--dim);margin:14px 0 0;max-width:78ch}
-  .queue-title{font-size:18px;font-weight:700;letter-spacing:-.01em;margin:24px 0 10px;color:var(--ink)}
-  main.wrap{padding-bottom:80px}
-
-  /* Mobile-First Touch & Layout Optimizations */
-  @media (max-width: 640px) {
-    .terminal-intro h1{font-size:22px}
-    .terminal-intro{margin-bottom:14px}
-    .type-filter summary{min-height:44px;display:list-item;padding:12px 0}
-    .tog,.btn,.btn-sm,header .chip{min-height:44px}
-    .type-filter .tog{text-align:left;flex:1 1 145px;font-size:10px}
-    .catalog-note{font-size:11px}
-    .signal-totals{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-    .signal-totals .panel{padding:10px 8px!important}
-    .signal-totals .lbl{font-size:8px;letter-spacing:.07em}
-    header .wrap{gap:10px!important}
-    .export-bar .wrap{flex-wrap:wrap}
-    .export-bar .lbl{flex:1 0 100%;font-size:9px}
-    .export-bar .btn{flex:1;justify-content:center}
-    .card .mono{overflow-wrap:anywhere}
-    .card h3{font-size:16px!important;line-height:1.35!important}
-    .card button[aria-expanded]{min-height:44px}
-
-    body {
-      padding-bottom: env(safe-area-inset-bottom, 20px);
-    }
-    .wrap {
-      padding: 0 12px;
-    }
-    /* Prevent iOS auto-zoom on input focus */
-    input, select, textarea {
-      font-size: 16px !important;
-    }
-    .btn {
-      padding: 10px 14px;
-      font-size: 11.5px;
-      min-height: 44px;
-    }
-    .btn-sm {
-      padding: 9px 12px;
-      font-size: 11px;
-      min-height: 44px;
-    }
-    .chip {
-      padding: 4px 8px;
-      font-size: 9.5px;
-    }
-    .drawer > div {
-      width: 100%;
-      padding: 18px;
-      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
-    }
-    .mobile-scroll-x {
-      overflow-x: auto !important;
-      flex-wrap: nowrap !important;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding-bottom: 6px;
-      margin: 0 -12px;
-      padding-left: 12px;
-      padding-right: 12px;
-    }
-    .mobile-scroll-x::-webkit-scrollbar {
-      display: none;
-    }
-    .vendor-action-bar {
-      flex-direction: column !important;
-      align-items: stretch !important;
-    }
-    .vendor-action-bar a, .vendor-action-bar button {
-      justify-content: center !important;
-      width: 100% !important;
-    }
+  /* ---------- responsive ---------- */
+  @media (max-width: 1040px){
+    .workbench{grid-template-columns:minmax(0,1fr);gap:20px}
+    .finder{position:static}
+    .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .stats>div:nth-child(4){border-left:0}
+    .stats>div:nth-child(n+4){border-top:1px solid var(--line)}
+  }
+  @media (max-width: 760px){
+    .kpi{grid-template-columns:minmax(0,1fr)}
+    .kpi-facts{border-right:0;border-bottom:1px solid var(--line-strong)}
+  }
+  @media (max-width: 640px){
+    .wrap{padding:0 16px}
+    .hdr-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand model" "attrib nav";gap:4px 12px;align-items:center;padding-top:8px;padding-bottom:6px}
+    .hdr-actions{display:contents}
+    .brand{grid-area:brand}
+    .model-status{grid-area:model}
+    .attrib{grid-area:attrib;padding-left:0;border-left:0;font-size:12.5px;min-height:44px;line-height:1.25;text-wrap:balance}
+    .hdr-nav{grid-area:nav}
+    .hdr-nav .btn{padding-left:9px;padding-right:9px}
+    .finder-actions{grid-template-columns:1fr 1fr}
+    .finder-actions .btn{white-space:normal;text-align:center;line-height:1.2}
+    .switch-hint{display:none}
+    .export-label{display:none}
+    .stats>div:nth-child(5){grid-column:1/-1;border-left:0}
+    .brand-name{font-size:19px}
+    main.wrap{padding-top:18px}
+    .intro h1{font-size:26px}
+    .intro p{font-size:14.5px}
+    .btn,.seg button,.act-group button,.toggle,.check,.switch{min-height:44px}
+    .link-btn{min-height:44px;display:inline-flex;align-items:center}
+    .btn-sm{min-height:44px}
+    .input,.select{font-size:16px;min-height:46px}
+    .kpi-cell{padding:10px 12px}
+    .kpi-value{font-size:23px}
+    .kpi-proj-cells{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .kpi-proj-cells .kpi-label{font-size:12px}
+    .queue-head h2{font-size:20px}
+    .card-main{gap:12px;padding:14px 14px 12px}
+    .score{width:60px;padding:6px 0 8px}
+    .score-num{font-size:28px}
+    .score-tier{font-size:11px;gap:4px}
+    .card-title{font-size:18px}
+    .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .stats>div{padding:10px 14px}
+    .stats>div+div{border-left:0}
+    .stats>div:nth-child(even){border-left:1px solid var(--line)}
+    .stats>div:nth-child(n+3){border-top:1px solid var(--line)}
+    .stats dd{font-size:18px}
+    .card-actions{padding:12px 14px;gap:8px}
+    .card-actions .btn-primary{flex:1 1 100%}
+    .act-group{flex:1 1 100%}
+    .act-group button{flex:1}
+    .toggle{margin-left:0;flex:1 1 100%;justify-content:center;border:1px solid var(--line-strong);background:var(--surface)}
+    .detail{padding:14px}
+    .detail-sec,.plan{padding:12px}
+    .vendor-action-bar{flex-direction:column;align-items:stretch}
+    .vendor-action-bar .btn{width:100%}
+    .export-bar .export-inner{flex-wrap:wrap}
+    .export-label{flex:1 0 100%;font-size:12px}
+    .export-bar .btn{flex:1}
+    .drawer>div{width:100%;padding:18px 16px calc(env(safe-area-inset-bottom,20px) + 20px)}
+    .grid3{grid-template-columns:1fr 1fr}
+    body{padding-bottom:env(safe-area-inset-bottom,0)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    .spin{animation:none}
   }
 
   @media print {
-    body { background: #FFFFFF !important; color: #090D16 !important; }
-    header button, .export-bar, .type-filter, .drawer, #modal-model, #modal-scoring, #modal-coverage { display: none !important; }
-    .card { break-inside: avoid; border: 1px solid #CBD5E1 !important; background: #FFFFFF !important; color: #090D16 !important; margin-bottom: 12px !important; box-shadow: none !important; }
-    .card * { color: inherit !important; }
-    .print-attribution { display: block !important; margin-top: 24px; padding-top: 12px; border-top: 1px solid #CBD5E1; font-family: var(--mono); font-size: 11px; }
+    body{background:#FFFFFF!important;color:#000!important}
+    .app{padding-bottom:0}
+    .hdr-actions,.export-bar,.finder,.drawer,.queue-tools,.card-actions,.btn,.score-key{display:none!important}
+    .app-header{position:static;border-bottom:1px solid #999}
+    .workbench{display:block}
+    .card{break-inside:avoid;border:1px solid #999!important;background:#FFFFFF!important;box-shadow:none!important;margin-bottom:12px}
+    .card *{color:#000!important}
+    .stats{background:#fff!important}
+    .site-foot{margin-top:24px;border-top:1px solid #999}
+    .print-attribution{display:block!important;margin-top:24px;padding-top:12px;border-top:1px solid #999;font-size:11px}
   }
 </style>
 </head>
@@ -221,21 +430,6 @@ const ROOFING_VERTICAL_CONFIG = {
 };
 const DEFAULT_A = ROOFING_VERTICAL_CONFIG.scoringDefaults;
 const KEY = "fieldradar-v1";
-const VLABEL = { "Strongly Recommended":"PRIME TARGET", "Conditional":"WATCHLIST", "Not Recommended":"PASS" };
-
-/* ============ score → color ramp (radar reflectivity) ============ */
-const RAMP = [[0,"#5A8EB9"],[30,"#0FA3A3"],[52,"#7FD34E"],[68,"#F5C518"],[84,"#F97316"],[94,"#FF3D71"],[100,"#FF3D71"]];
-function hex2rgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
-function rampColor(s){
-  s=Math.max(0,Math.min(100,s));
-  for(let i=0;i<RAMP.length-1;i++){
-    const [a,ca]=RAMP[i],[b,cb]=RAMP[i+1];
-    if(s>=a&&s<=b){const t=(s-a)/(b-a||1),A=hex2rgb(ca),B=hex2rgb(cb);
-      return "rgb("+A.map((v,j)=>Math.round(v+(B[j]-v)*t)).join(",")+")";}
-  }
-  return RAMP[RAMP.length-1][1];
-}
-const rampCSS = "linear-gradient(90deg,"+RAMP.map(([p,c])=>c+" "+p+"%").join(",")+")";
 
 /* ============ scoring engine (exact workbook math) ============ */
 function num(v,fb=0){const n=Number(v);return Number.isFinite(n)?n:fb;}
@@ -289,11 +483,11 @@ function computeEvent(ev,A){
 
 /* ============ formatting ============ */
 const fmt$=n=>n==null?"—":"$"+Math.round(n).toLocaleString();
-const fmtK=n=>n==null?"—":(n>=1000?"$"+(Math.round(n/100)/10).toLocaleString()+"K":"$"+Math.round(n));
+const fmtK=n=>n==null?"—":(n>=1e6?"$"+(Math.round(n/1e5)/10).toLocaleString()+"M":n>=1000?"$"+(Math.round(n/100)/10).toLocaleString()+"K":"$"+Math.round(n));
 const fmtN=(n,d=0)=>n==null?"—":Number(n).toLocaleString(undefined,{maximumFractionDigits:d});
 const fmtX=n=>n==null?"—":(n>=10?Math.round(n)+"x":n.toFixed(1)+"x");
-const fmtDate=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric"}).toUpperCase();};
-const fmtDateY=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}).toUpperCase();};
+const fmtDate=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric"});};
+const fmtDateY=iso=>{if(!iso)return "TBD";const d=new Date(iso+"T12:00:00");return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});};
 const uid=()=>Math.random().toString(36).slice(2,10);
 const slug=s=>(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"events";
 
@@ -549,32 +743,45 @@ function buildGoogleCalUrl(ev,A){
 }
 
 /* ============ UI atoms ============ */
-function ScoreNum({score}){
-  const c=rampColor(score);
-  return <div className="mono" style={{color:c,fontSize:42,fontWeight:700,lineHeight:1,letterSpacing:"-0.03em",minWidth:62,textAlign:"right"}}>{Math.round(score)}</div>;
+/* One semantic scale for the score: pass < watchlist < prime (green intensity). */
+const TIER={"Strongly Recommended":{key:"prime",label:"Prime"},"Conditional":{key:"watch",label:"Watchlist"}};
+const tierOf=verdict=>TIER[verdict]||{key:"pass",label:"Pass"};
+function ScoreBadge({score,verdict}){
+  const t=tierOf(verdict);
+  return <div className="score" role="group" aria-label={"Score "+Math.round(score)+" out of 100, "+t.label}>
+    <span className="score-num">{Math.round(score)}</span>
+    <span className="score-tier"><i className={"dot dot-"+t.key} aria-hidden="true"></i>{t.label}</span>
+  </div>;
 }
-function VChip({verdict}){
-  const c=verdict==="Strongly Recommended"?"var(--hot)":verdict==="Conditional"?"var(--amber)":"var(--dim)";
-  const bg=verdict==="Strongly Recommended"?"rgba(239,68,68,0.12)":verdict==="Conditional"?"rgba(245,158,11,0.12)":"rgba(120,140,174,0.12)";
-  return <span className="chip" style={{borderColor:c,color:c,background:bg,fontWeight:700}}>{VLABEL[verdict]}</span>;
-}
-function Stat({label,value,color}){
-  return <div style={{minWidth:0}}>
-    <div className="lbl">{label}</div>
-    <div className="mono" style={{fontSize:16,fontWeight:700,color:color||"var(--ink)",marginTop:3,whiteSpace:"nowrap"}}>{value}</div>
+function Metric({label,value}){
+  return <div className="metric">
+    <div className="kpi-label">{label}</div>
+    <div className="kpi-value">{value}</div>
   </div>;
 }
 function Num({label,value,onChange,prefix,suffix,step}){
-  return <div className="field"><label>
-    <span className="lbl">{label}</span>
-    <div style={{display:"flex",alignItems:"center",gap:4}}>
-      {prefix&&<span className="mono" style={{color:"var(--dim)",fontSize:13}}>{prefix}</span>}
-      <input className="mono" type="number" step={step||1} value={value} onChange={e=>onChange(e.target.value)} style={{fontSize:14}}/>
-      {suffix&&<span className="mono" style={{color:"var(--dim)",fontSize:13}}>{suffix}</span>}
-    </div>
-  </label></div>;
+  return <label className="field">
+    <span className="field-label">{label}</span>
+    <span className="input-affix">
+      {prefix&&<span className="affix">{prefix}</span>}
+      <input className="input" type="number" step={step||1} value={value} onChange={e=>onChange(e.target.value)}/>
+      {suffix&&<span className="affix">{suffix}</span>}
+    </span>
+  </label>;
 }
-function SectionLabel({children}){return <div className="lbl" style={{color:"var(--ink)",margin:"18px 0 10px",letterSpacing:".08em"}}>{children}</div>;}
+function SectionLabel({children}){return <h3 className="sec">{children}</h3>;}
+function IconInfo(){
+  return <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+    <rect x="7.25" y="7" width="1.5" height="4.5" fill="currentColor"/><rect x="7.25" y="4.5" width="1.5" height="1.5" fill="currentColor"/>
+  </svg>;
+}
+function IconSearch(){
+  return <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <circle cx="6.5" cy="6.5" r="4.75" fill="none" stroke="currentColor" strokeWidth="1.75"/>
+    <path d="M10.2 10.2 L14 14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+  </svg>;
+}
 
 /* ============ ACCESSIBLE MODAL DRAWER ============ */
 function ModalDrawer({ id, titleId, title, isOpen, onClose, triggerRef, children }) {
@@ -660,18 +867,16 @@ function ModalDrawer({ id, titleId, title, isOpen, onClose, triggerRef, children
         onClick={(e) => e.stopPropagation()}
         style={{ outline: "none" }}
       >
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <h2 id={titleId} style={{ fontWeight: 700, fontSize: 16, letterSpacing: ".04em", margin: 0, color: "var(--ink)" }}>
-            {title}
-          </h2>
+        <div className="drawer-head">
+          <h2 id={titleId}>{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label={`Close ${title}`}
-            className="btn btn-sm btn-ghost"
-            style={{ marginLeft: "auto", fontSize: 13, padding: "4px 8px" }}
+            className="btn btn-sm btn-quiet"
+            style={{ marginLeft: "auto" }}
           >
-            ✕
+            Close
           </button>
         </div>
         {children}
@@ -687,7 +892,7 @@ function App(){
   const [radius,setRadius]=useState(50);
   const [months,setMonths]=useState(6);
   const [types,setTypes]=useState(EVENT_TYPES);
-  const [typesExpanded,setTypesExpanded]=useState(()=>window.innerWidth>640);
+  const [typesExpanded,setTypesExpanded]=useState(false);
   const [events,setEvents]=useState([]);
   const [lastMarket,setLastMarket]=useState("");
   const [loading,setLoading]=useState(false);
@@ -890,10 +1095,10 @@ function App(){
         if (!hasKey) {
           if (p0Matches.length > 0) {
             found = p0Matches;
-            setError("Showing verified catalog events. Connect an Anthropic or OpenRouter key in MODEL LINK to scout live web listings.");
+            setError("Showing verified catalog events. Connect an Anthropic or OpenRouter key in Model link to scout live web listings.");
           } else {
             setShowModel(true);
-            setError("No verified catalog events in this market. Connect an Anthropic or OpenRouter key in MODEL LINK to scout live web listings, or enable DEMO DATA.");
+            setError("No verified catalog events in this market. Connect an Anthropic or OpenRouter key in Model link to scout live web listings, or turn on Demo data.");
             return;
           }
         } else {
@@ -929,7 +1134,7 @@ function App(){
     const hasKey = cfg.provider === "openrouter" ? !!cfg.orKey : !!cfg.apiKey;
     if (!cfg.demo && !hasKey) {
       setShowModel(true);
-      setError("Connect an Anthropic or OpenRouter key in MODEL LINK to generate live AI game plans, or enable DEMO DATA.");
+      setError("Connect an Anthropic or OpenRouter key in Model link to generate live AI game plans, or turn on Demo data.");
       return;
     }
     setPlanLoading(p=>({...p,[id]:true}));
@@ -984,404 +1189,398 @@ function App(){
   };
 
   const linkChip = cfg.demo
-    ? {txt:"DEMO MODE",c:"var(--amber)"}
+    ? {txt:"Demo mode",dot:"caution"}
     : cfg.provider==="openrouter"
       ? (cfg.orKey
-          ? {txt:linkState==="fail"?"OPENROUTER · DOWN":"OPENROUTER: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
-          : {txt:"CONNECT MODEL",c:"var(--amber)"})
+          ? {txt:linkState==="fail"?"OpenRouter · down":"OpenRouter · keyed",dot:linkState==="fail"?"error":"good"}
+          : {txt:"Connect model",dot:"caution"})
       : cfg.apiKey
-        ? {txt:linkState==="fail"?"CLAUDE · DOWN":"CLAUDE: KEYED",c:linkState==="fail"?"var(--hot)":"var(--grn)"}
-        : {txt:"CONNECT MODEL",c:"var(--amber)"};
+        ? {txt:linkState==="fail"?"Claude · down":"Claude · keyed",dot:linkState==="fail"?"error":"good"}
+        : {txt:"Connect model",dot:"caution"};
+  const typeSummary = types.length===EVENT_TYPES.length ? "All "+EVENT_TYPES.length
+    : types.length===0 ? "None (searches all)" : types.length+" of "+EVENT_TYPES.length;
+  const emptyMarket = (lastMarket||market||"").split(" · ")[0].trim();
+  const keyPass = Math.min(assump.condAt,assump.strongAt);
 
-  return <div style={{paddingBottom:110}}>
+  return <div className="app">
     {/* ===== header ===== */}
-    <header style={{borderBottom:"1px solid var(--line)",background:"rgba(9,13,22,.96)",backdropFilter:"blur(8px)",position:"sticky",top:0,zIndex:40}}>
-      <div className="wrap" style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",flexWrap:"wrap"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div className="sweep" aria-hidden="true"></div>
-          <div style={{lineHeight:1.1,minWidth:0}}>
-            <div style={{fontWeight:700,fontSize:18,letterSpacing:".02em"}}>FIELD<span style={{color:"var(--accent)"}}>RADAR</span></div>
-            <div className="lbl" style={{fontSize:9,letterSpacing:".1em",color:"var(--dim)"}}>EVENT TARGETING TERMINAL</div>
-          </div>
+    <header className="app-header">
+      <div className="wrap hdr-inner">
+        <div className="brand">
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+            <circle cx="14" cy="14" r="12.5" fill="none" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="14" cy="14" r="7" fill="none" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="14" cy="14" r="2.5" fill="var(--accent)"/>
+          </svg>
+          <span className="brand-name">FieldRadar</span>
         </div>
-        <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" title="Powered by JTF Software Solutions (jtfsoftware.com)"
-           style={{display:"flex",alignItems:"center",gap:8,paddingLeft:12,borderLeft:"1px solid var(--line)",marginLeft:4,textDecoration:"none"}}>
+        <a className="attrib" href="https://jtfsoftware.com" target="_blank" rel="noreferrer" title="Powered by JTF Software Solutions (jtfsoftware.com)">
           <svg width="18" height="18" viewBox="0 0 100 100" aria-hidden="true" focusable="false" style={{flex:"none"}}>
-            <path fill="#F8FAFC" d="M10 65.97 L91.5 25.22 L91.5 35.28 L31.06 65.5 L91.5 65.5 L91.5 76.5 L10 76.5 Z" />
+            <path fill="#14181F" d="M10 65.97 L91.5 25.22 L91.5 35.28 L31.06 65.5 L91.5 65.5 L91.5 76.5 L10 76.5 Z" />
             <rect x="80.5" y="33" width="11" height="38" fill="#FF3B00" />
           </svg>
-          <span className="mono" style={{fontSize:11,fontWeight:600,color:"#F8FAFC",letterSpacing:".04em",display:"inline-block"}}>
-            Powered by JTF Software Solutions
-          </span>
+          <span>Powered by JTF Software Solutions</span>
         </a>
-        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          <button ref={modelBtnRef} className="chip" onClick={()=>setShowModel(true)} aria-haspopup="dialog" aria-expanded={showModel} aria-controls="modal-model" style={{cursor:"pointer",background:"var(--panel2)",borderColor:linkChip.c,color:linkChip.c}}>{linkChip.txt}</button>
-          <button ref={coverageBtnRef} className="btn btn-sm btn-ghost" onClick={()=>setShowCoverage(true)} aria-haspopup="dialog" aria-expanded={showCoverage} aria-controls="modal-coverage" aria-label="National Coverage Dashboard">COVERAGE</button>
-          <button ref={scoringBtnRef} className="btn btn-sm btn-ghost" onClick={()=>setShowScoring(true)} aria-haspopup="dialog" aria-expanded={showScoring} aria-controls="modal-scoring" aria-label="Scoring Model Configuration">SCORING</button>
+        <div className="hdr-actions">
+          <button ref={modelBtnRef} type="button" className="btn btn-sm model-status" onClick={()=>setShowModel(true)} aria-haspopup="dialog" aria-expanded={showModel} aria-controls="modal-model">
+            <i className={"dot dot-"+linkChip.dot} aria-hidden="true"></i>{linkChip.txt}
+          </button>
+          <nav className="hdr-nav" aria-label="Panels">
+            <button ref={coverageBtnRef} type="button" className="btn btn-sm btn-quiet" onClick={()=>setShowCoverage(true)} aria-haspopup="dialog" aria-expanded={showCoverage} aria-controls="modal-coverage" aria-label="National Coverage Dashboard">Coverage</button>
+            <button ref={scoringBtnRef} type="button" className="btn btn-sm btn-quiet" onClick={()=>setShowScoring(true)} aria-haspopup="dialog" aria-expanded={showScoring} aria-controls="modal-scoring" aria-label="Scoring Model Configuration">Scoring</button>
+          </nav>
         </div>
       </div>
     </header>
 
-    <main className="wrap" style={{paddingTop:20}}>
-      <div className="terminal-intro">
-        <div>
-          <h1>Your field opportunity desk.</h1>
-          <p>Review event signals, compare modeled returns, and confirm the details with organizers.</p>
-        </div>
+    <main className="wrap">
+      <div className="intro">
+        <h1>Your field opportunity desk.</h1>
+        <p>Review event signals, compare modeled returns, and confirm the details with organizers.</p>
       </div>
-      {/* ===== command console ===== */}
-      <section className="panel" style={{padding:16}}>
-        <div className="lbl" style={{marginBottom:12,color:"var(--mut)",letterSpacing:".08em"}}>SCAN PARAMETERS</div>
-        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-          <div style={{flex:"1 1 250px",position:"relative"}}>
-            <input className="mono" value={market} onChange={e=>{setMarket(e.target.value);setShowSuggest(true);}}
-              onFocus={()=>setShowSuggest(true)}
-              onBlur={()=>setTimeout(()=>setShowSuggest(false),250)}
-              onKeyDown={e=>{
-                if(e.key==="Enter"&&!loading){setShowSuggest(false);onScout();}
-              }}
-              placeholder="MARKET — e.g. DALLAS, TX OR 36571" aria-label="Market"
-              style={{textTransform:"uppercase",letterSpacing:".04em",width:"100%"}}/>
-            
-            {showSuggest && market.trim().length > 0 && (()=>{
-              const q = market.trim().toUpperCase();
-              const localMatches = CITIES_DB.filter(item => {
-                if (item.c.toUpperCase().includes(q)) return true;
-                if (item.sub.toUpperCase().includes(q)) return true;
-                if (item.zips && item.zips.some(z => z.startsWith(q))) return true;
-                return false;
-              });
 
-              // Merge local instant index with live geocoded results
-              const seen = new Set(localMatches.map(m => m.c));
-              const extra = liveMatches.filter(m => !seen.has(m.c));
-              const combined = [...localMatches, ...extra].slice(0, 7);
+      <div className="workbench">
+        {/* ===== find events ===== */}
+        <aside className="finder" aria-label="Scan parameters">
+          <h2 className="panel-title">Find events</h2>
+          <div className="field">
+            <label className="field-label" htmlFor="market-input">Market</label>
+            <div style={{position:"relative"}}>
+              <input id="market-input" className="input" value={market} onChange={e=>{setMarket(e.target.value);setShowSuggest(true);}}
+                onFocus={()=>setShowSuggest(true)}
+                onBlur={()=>setTimeout(()=>setShowSuggest(false),250)}
+                onKeyDown={e=>{
+                  if(e.key==="Enter"&&!loading){setShowSuggest(false);onScout();}
+                }}
+                placeholder="City, state or ZIP — e.g. Dallas, TX" aria-label="Market" autoComplete="off"/>
+              {showSuggest && market.trim().length > 0 && (()=>{
+                const q = market.trim().toUpperCase();
+                const localMatches = CITIES_DB.filter(item => {
+                  if (item.c.toUpperCase().includes(q)) return true;
+                  if (item.sub.toUpperCase().includes(q)) return true;
+                  if (item.zips && item.zips.some(z => z.startsWith(q))) return true;
+                  return false;
+                });
 
-              if (!combined.length) return null;
+                // Merge local instant index with live geocoded results
+                const seen = new Set(localMatches.map(m => m.c));
+                const extra = liveMatches.filter(m => !seen.has(m.c));
+                const combined = [...localMatches, ...extra].slice(0, 7);
 
-              return <div style={{
-                position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:60,
-                background:"var(--panel2)",border:"1px solid var(--line2)",borderRadius:4,
-                boxShadow:"0 10px 25px rgba(0,0,0,0.6)",overflow:"hidden"
-              }}>
-                {combined.map((m,idx)=>
-                  <div key={m.c + "_" + idx} 
-                    onMouseDown={()=>{
-                      setMarket(m.c);
-                      if (m.lat && m.lng) DYNAMIC_COORDS_CACHE[m.c] = { lat: m.lat, lng: m.lng };
-                      setShowSuggest(false);
-                    }}
-                    style={{
-                      padding:"9px 12px",cursor:"pointer",borderBottom:idx<combined.length-1?"1px solid var(--line)":"none",
-                      display:"flex",flexDirection:"column",gap:2,background:"transparent",transition:"background .15s"
-                    }}
-                    onMouseEnter={e=>e.currentTarget.style.background="var(--panel-hover)"}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                  >
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span className="mono" style={{color:"var(--ink)",fontWeight:700,fontSize:13}}>{m.c}</span>
-                      <span className="chip" style={{fontSize:9,marginLeft:"auto",borderColor:m.source==="LIVE GEO"?"var(--grn)":"var(--line2)",color:m.source==="LIVE GEO"?"var(--grn)":"var(--mut)"}}>
-                        {m.source || "AUTO-MATCH"}
-                      </span>
+                if (!combined.length) return null;
+
+                return <div className="suggest">
+                  {combined.map((m,idx)=>
+                    <div key={m.c + "_" + idx} className="suggest-item"
+                      onMouseDown={()=>{
+                        setMarket(m.c);
+                        if (m.lat && m.lng) DYNAMIC_COORDS_CACHE[m.c] = { lat: m.lat, lng: m.lng };
+                        setShowSuggest(false);
+                      }}>
+                      <div className="suggest-top">
+                        <span className="suggest-name">{m.c}</span>
+                        <span className="suggest-src">{m.source==="LIVE GEO"?"Live geocode":m.source==="ZIP CODE"?"ZIP":"Match"}</span>
+                      </div>
+                      <div className="suggest-sub">{m.sub}</div>
                     </div>
-                    <div className="mono" style={{color:"var(--mut)",fontSize:10.5}}>{m.sub}</div>
-                  </div>
-                )}
-              </div>;
-            })()}
-          </div>
-          <select className="mono" value={radius} onChange={e=>setRadius(Number(e.target.value))} aria-label="Radius" style={{width:120}}>
-            {[15,25,50,75,100,150].map(r=><option key={r} value={r}>{r} MI</option>)}
-          </select>
-          <select className="mono" value={months} onChange={e=>setMonths(Number(e.target.value))} aria-label="Date window" style={{width:150}}>
-            <option value={2}>60 DAYS</option><option value={3}>90 DAYS</option>
-            <option value={6}>6 MONTHS</option><option value={12}>12 MONTHS</option>
-          </select>
-        </div>
-        <details className="type-filter" open={typesExpanded} onToggle={e=>setTypesExpanded(e.currentTarget.open)}>
-          <summary>EVENT TYPES <span>{types.length} / {EVENT_TYPES.length} selected</span></summary>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
-          {EVENT_TYPES.map(t=>{const on=types.includes(t);
-            return <button key={t} className={"tog"+(on?" on":"")}
-              aria-pressed={on} onClick={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}>{t}</button>;})}
-          </div>
-        </details>
-        <div style={{display:"flex",gap:10,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
-          <button className="btn btn-hot" onClick={()=>onScout()} disabled={loading}>
-            {loading?<span className="spin">◌</span>:"◉"} {loading?"SCANNING…":"SCOUT EVENTS"}
-          </button>
-          <button className="btn btn-sm" onClick={addManual}>+ ADD MANUAL</button>
-          <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)",background:"rgba(245,197,24,.08)"}:{}}
-            onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
-          <button className="btn btn-sm btn-ghost" title="Reset cache and reload verified P0 national data"
-            onClick={()=>{store.set(KEY,"");setEvents(P0_SEED_EVENTS);setMarket("DALLAS, TX");setLastMarket("NATIONAL P0 HIGHLIGHTS");}}>↺ RESET CACHE</button>
-          {lastMarket&&<span className="mono" style={{fontSize:11,color:"var(--mut)"}}>LAST SCAN: <b style={{color:"var(--ink)"}}>{lastMarket.toUpperCase()}</b></span>}
-        </div>
-        {loading&&<div role="status" aria-live="polite" className="panel" style={{marginTop:12,padding:"12px 14px",borderLeft:"3px solid var(--accent)",background:"var(--panel2)",display:"flex",alignItems:"center",gap:12}}>
-          <span className="spin" style={{color:"var(--accent)",fontSize:18}}>◌</span>
-          <div>
-            <div className="mono" style={{fontSize:12,fontWeight:700,color:"var(--ink)",letterSpacing:".06em"}}>
-              SCANNING TARGET MARKET — {market.toUpperCase()||"NATIONAL"} · {radius} MI
-            </div>
-            <div className="mono" style={{fontSize:11,color:"var(--mut)",marginTop:2}}>
-              {searchStep||"Querying verified signals and calculating opportunity economics..."}
+                  )}
+                </div>;
+              })()}
             </div>
           </div>
-        </div>}
-        {error&&<div role="alert" aria-live="assertive" className="mono" style={{marginTop:12,fontSize:12,color:"var(--hot)",fontWeight:600,padding:"10px 14px",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.25)",borderRadius:4,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{flex:"1 1 200px"}}>▲ {error}</span>
-          <div style={{display:"flex",gap:6,marginLeft:"auto",alignItems:"center"}}>
-            {error.indexOf("NO MODEL LINK")===0&&<>
-              <button className="btn btn-sm btn-hot" onClick={()=>setShowModel(true)}>CONNECT A MODEL</button>
-              <button className="btn btn-sm" onClick={()=>onScout(true)}>RUN DEMO DATA</button>
-            </>}
-            <button className="btn btn-sm btn-ghost" onClick={()=>setError("")} aria-label="Dismiss error notification">✕ DISMISS</button>
-          </div>
-        </div>}
-      </section>
-
-      {/* ===== signal summary + ramp legend ===== */}
-      {events.length>0&&<section style={{marginTop:14}}>
-        <div className="signal-totals" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(118px,1fr))",gap:8}}>
-          {[["SIGNALS",fmtN(totals.count)],
-            ["PRIME",fmtN(totals.prime),totals.prime?"var(--hot)":undefined],
-            ["PROJ. LEADS",fmtN(totals.leads,0),"var(--accent)"],
-            ["EST. SPEND",fmtK(totals.cost)],
-            ["PROJ. REVENUE",fmtK(totals.revenue),"var(--grn)"]].map(([l,v,c])=>
-            <div key={l} className="panel" style={{padding:"10px 12px"}}><Stat label={l} value={v} color={c}/></div>)}
-        </div>
-        <div style={{marginTop:10}}>
-          <div style={{height:6,borderRadius:3,display:"flex",overflow:"hidden",background:"var(--panel2)",gap:2}} aria-hidden="true">
-            <div style={{flex:assump.condAt,background:"var(--cold)",borderRadius:"2px 0 0 2px"}}/>
-            <div style={{flex:assump.strongAt-assump.condAt,background:"var(--amber)"}}/>
-            <div style={{flex:100-assump.strongAt,background:"var(--hot)",borderRadius:"0 2px 2px 0"}}/>
-          </div>
-          <div className="mono" style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--dim)",marginTop:4,letterSpacing:".12em"}}>
-            <span>0 · COLD</span><span>{assump.condAt} · WATCHLIST</span><span>{assump.strongAt} · PRIME</span><span>100</span>
-          </div>
-        </div>
-      </section>}
-
-      <p className="catalog-note">Catalog signals are not a live availability feed. Confirm dates, attendance and vendor openings with the organizer. Leads and revenue are model projections.</p>
-      {events.length>0&&<h2 className="queue-title">Opportunity queue</h2>}
-      {/* ===== sort ===== */}
-      {events.length>1&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:16}}>
-        <span className="lbl">RANK BY</span>
-        {[["score","SCORE"],["date","DATE"],["cpl","CPL"]].map(([k,l])=>
-          <button key={k} aria-pressed={sortBy===k} className={"tog"+(sortBy===k?" on":"")} onClick={()=>setSortBy(k)}>{l}</button>)}
-        {anyDemo&&<span className="chip" style={{marginLeft:"auto",borderColor:"var(--amber)",color:"var(--amber)"}}>SAMPLE DATA</span>}
-      </div>}
-
-      {/* ===== event cards ===== */}
-      {scored.map(({ev,m})=>{
-        const c=rampColor(m.score);
-        const isOpen=!!open[ev.id];
-        const skipped=ev.status==="skip";
-        return <article key={ev.id} className="panel card" style={{marginTop:12,opacity:skipped?0.45:1}}>
-          <div className="scorebar" style={{background:c}} aria-hidden="true"></div>
-          <div style={{padding:"14px 14px 12px 20px"}}>
-            <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
-              <ScoreNum score={m.score}/>
-              <div style={{minWidth:0,flex:1}}>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-                  <VChip verdict={m.verdict}/>
-                  <span className="chip">{ev.type}</span>
-                  {ev.vStatus==="open"&&<span className="chip" style={{borderColor:"var(--grn)",color:"var(--grn)"}}>● VENDOR APPS OPEN</span>}
-                  {ev.vStatus==="waitlist"&&<span className="chip" style={{borderColor:"var(--amber)",color:"var(--amber)"}}>▲ WAITLIST</span>}
-                  {ev.appDeadline&&<span className="chip" style={{borderColor:"var(--line2)",color:"var(--ink)"}}>⏳ DEADLINE: {ev.appDeadline}</span>}
-                  {ev.data==="demo"&&<span className="chip" style={{borderColor:"var(--amber)",color:"var(--amber)"}}>DEMO</span>}
-                  {ev.status==="target"&&<span className="chip" style={{borderColor:"var(--accent)",color:"var(--accent)"}}>◎ TARGETED</span>}
-                  {ev.status==="booked"&&<span className="chip" style={{borderColor:"var(--grn)",color:"var(--grn)"}}>✓ BOOKED</span>}
-                </div>
-                <h3 style={{margin:"7px 0 3px",fontSize:17,fontWeight:700,letterSpacing:".01em",lineHeight:1.25,textTransform:"uppercase"}}>{ev.name}</h3>
-                <div className="mono" style={{fontSize:11.5,color:"var(--mut)"}}>
-                  {[ev.venue,ev.city].filter(Boolean).join(" · ")}{ev.mi!=null?" · "+fmtN(ev.mi)+" MI OUT":""}
-                </div>
-                <div className="mono" style={{fontSize:11.5,color:"var(--ink)",marginTop:3,fontWeight:600}}>
-                  {fmtDateY(ev.sd)}{ev.ed&&ev.ed!==ev.sd?" — "+fmtDateY(ev.ed):""}
-                </div>
-                {ev.note&&<div className="mono" style={{fontSize:11,color:"var(--dim)",marginTop:4}}>» {ev.note}</div>}
-              </div>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(88px,1fr))",gap:6,marginTop:12,borderTop:"1px solid var(--line)",paddingTop:10}}>
-              <Stat label="ATTEND." value={fmtN(ev.att)}/>
-              <Stat label="EST. LEADS" value={fmtN(m.leads,0)} color="var(--accent)"/>
-              <Stat label="CPL" value={fmt$(m.cpl)} color={m.cpl!=null&&m.cpl<=assump.targetCPL?"var(--grn)":undefined}/>
-              <Stat label="ROI" value={fmtX(m.roi)} color={m.roi!=null&&m.roi>=assump.targetROI?"var(--grn)":undefined}/>
-              <Stat label="EST. REV" value={fmtK(m.revenue)}/>
-            </div>
-
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginTop:12}}>
-              <button className="btn btn-sm btn-hot" onClick={()=>onPlan(ev.id)} disabled={!!planLoading[ev.id]}>
-                {planLoading[ev.id]?<span className="spin">◌</span>:"▸"} {ev.plan?"REBUILD PLAN":"GAME PLAN"}
-              </button>
-              <button className="btn btn-sm" style={ev.status==="target"?{borderColor:"var(--accent)",color:"var(--accent)"}:{}}
-                onClick={()=>setStatus(ev.id,ev.status==="target"?"new":"target")}>◎ TARGET</button>
-              <button className="btn btn-sm" style={ev.status==="booked"?{borderColor:"var(--grn)",color:"var(--grn)"}:{}}
-                onClick={()=>setStatus(ev.id,ev.status==="booked"?"new":"booked")}>✓ BOOKED</button>
-              <button className="btn btn-sm btn-ghost" onClick={()=>setStatus(ev.id,skipped?"new":"skip")}>{skipped?"UNSKIP":"SKIP"}</button>
-              <button aria-expanded={isOpen} aria-label={(isOpen?"Close details for ":"Adjust details for ")+ev.name} onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}
-                style={{marginLeft:"auto",background:"none",border:"none",color:"var(--ink)",fontFamily:"var(--mono)",fontWeight:700,fontSize:11,letterSpacing:".1em",cursor:"pointer"}}>
-                {isOpen?"CLOSE ▴":"ADJUST ▾"}
-              </button>
-            </div>
+          <div className="row-2">
+            <label className="field">
+              <span className="field-label">Radius</span>
+              <select className="select" value={radius} onChange={e=>setRadius(Number(e.target.value))} aria-label="Radius">
+                {[15,25,50,75,100,150].map(r=><option key={r} value={r}>{r} mi</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span className="field-label">Date window</span>
+              <select className="select" value={months} onChange={e=>setMonths(Number(e.target.value))} aria-label="Date window">
+                <option value={2}>60 days</option><option value={3}>90 days</option>
+                <option value={6}>6 months</option><option value={12}>12 months</option>
+              </select>
+            </label>
           </div>
 
-          {isOpen&&<div style={{borderTop:"1px solid var(--line)",background:"var(--panel2)",padding:"14px 14px 14px 20px"}}>
-            {/* ===== VENDOR INTELLIGENCE CARD ===== */}
-            <div style={{border:"1px solid var(--line2)",borderRadius:4,padding:"12px 14px",background:"var(--panel)",marginBottom:12}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                <div className="lbl" style={{color:"var(--mut)",fontSize:11}}>▸ CAN I WORK THIS EVENT? (VENDOR INTEL)</div>
-                {ev.appDeadline&&<span className="chip" style={{marginLeft:"auto",borderColor:"var(--amber)",color:"var(--amber)",fontSize:9.5}}>APPLY BY {ev.appDeadline}</span>}
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,fontSize:12}}>
-                <div>
-                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>BOOTH COST: </span>
-                  <b style={{color:"var(--ink)"}}>${ev.booth} typical 10x10</b>
-                </div>
-                {ev.homeVal&&<div>
-                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>MEDIAN HOME VALUE: </span>
-                  <b style={{color:"var(--grn)"}}>{ev.homeVal}</b>
-                </div>}
-                {ev.org&&<div>
-                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>ORGANIZER: </span>
-                  <span style={{color:"var(--ink)"}}>{ev.org}</span>
-                </div>}
-                {ev.orgContact&&<div>
-                  <span className="mono" style={{color:"var(--mut)",fontSize:10.5}}>CONTACT: </span>
-                  <span style={{color:"var(--ink)"}}>{ev.orgContact}</span>
-                </div>}
-              </div>
-              {ev.rules&&<div className="mono" style={{marginTop:8,fontSize:11,color:"var(--dim)"}}>
-                <b style={{color:"var(--mut)"}}>RULES:</b> {ev.rules}
-              </div>}
-              
-              {/* Bulletproof Multi-Action Vendor Toolbar */}
-              <div className="vendor-action-bar" style={{marginTop:12,paddingTop:10,borderTop:"1px solid var(--line)",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                {ev.appUrl && (
-                  <a href={ev.appUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-hot" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:5}}>
-                    ↗ OPEN OFFICIAL VENDOR PORTAL
-                  </a>
-                )}
-                
-                <a href={`https://www.google.com/search?q=${encodeURIComponent(ev.name + " " + (ev.city||"") + " vendor application exhibitor packet form")}`}
-                   target="_blank" rel="noreferrer" className="btn btn-sm" style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:5}}
-                   title="1-click live search for the latest 2026/2027 PDF vendor packet or application form">
-                  ⚡ 1-CLICK VENDOR FORM (LIVE SEARCH)
-                </a>
-
-                {(()=>{
-                  const contact = ev.orgContact || "";
-                  const emailMatch = contact.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-                  const phoneMatch = contact.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
-                  
-                  return <>
-                    {emailMatch && (
-                      <a href={`mailto:${emailMatch[0]}?subject=${encodeURIComponent("Vendor Booth Inquiry — " + ev.name)}&body=${encodeURIComponent("Hello,\n\nWe are interested in securing a vendor booth for " + ev.name + " (" + (ev.city || "") + "). Could you please send over the latest exhibitor packet, booth pricing, and application deadline?\n\nThank you!")}`}
-                         className="btn btn-sm" style={{textDecoration:"none",borderColor:"var(--line2)",color:"var(--ink)"}}>
-                        ✉ EMAIL ORGANIZER
-                      </a>
-                    )}
-                    {phoneMatch && (
-                      <a href={`tel:${phoneMatch[0].replace(/[^0-9]/g, '')}`}
-                         className="btn btn-sm" style={{textDecoration:"none",borderColor:"var(--line2)",color:"var(--ink)"}}>
-                        📞 CALL: {phoneMatch[0]}
-                      </a>
-                    )}
-                  </>;
-                })()}
-
-                {/* 1-Click Google Calendar Add (Personal Gmail & Work Google Workspace) */}
-                <a href={buildGoogleCalUrl(ev, assump)} target="_blank" rel="noreferrer"
-                   className="btn btn-sm" style={{textDecoration:"none",borderColor:"var(--line2)",color:"var(--ink)",background:"var(--panel2)"}}
-                   title="Add booth dates, address, and lead goals directly into your Personal or Work Google Calendar">
-                  📅 ADD TO GOOGLE CALENDAR
-                </a>
-              </div>
+          <details className="types" open={typesExpanded} onToggle={e=>setTypesExpanded(e.currentTarget.open)}>
+            <summary>Event types <span className="types-count">{typeSummary}</span></summary>
+            <div className="types-tools">
+              <button type="button" className="link-btn" onClick={()=>setTypes(EVENT_TYPES)}>Select all</button>
+              <button type="button" className="link-btn" onClick={()=>setTypes([])}>Clear</button>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
-              <Num label="ATTENDANCE (EXP)" value={ev.att} onChange={v=>patch(ev.id,{att:num(v),lo:Math.round(num(v)*0.8),hi:Math.round(num(v)*1.2)})}/>
-              <Num label="HOMEOWNER %" suffix="%" value={Math.round(num(ev.ho,0.5)*100)} onChange={v=>patch(ev.id,{ho:clamp01(num(v)/100)})}/>
-              <Num label="BOOTH COST" prefix="$" value={ev.booth} onChange={v=>patch(ev.id,{booth:num(v)})}/>
-              <Num label="SPONSORSHIP" prefix="$" value={ev.spons} onChange={v=>patch(ev.id,{spons:num(v)})}/>
-              <Num label="STAFFING" prefix="$" value={ev.staff} onChange={v=>patch(ev.id,{staff:num(v)})}/>
-              <Num label="TRAVEL + OTHER" prefix="$" value={num(ev.travel)+num(ev.other)} onChange={v=>patch(ev.id,{travel:num(v),other:0})}/>
-            </div>
-            <div className="mono" style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:12,fontSize:10.5,color:"var(--mut)",letterSpacing:".06em"}}>
-              <span>LEAD {m.leadScore.toFixed(0)}</span><span>CPL {m.cplScore.toFixed(0)}</span>
-              <span>ROI {m.roiScore.toFixed(0)}</span><span>OWNER {m.hoScore.toFixed(0)}</span>
-              <span>RANGE {m.leadsLo.toFixed(0)}–{m.leadsHi.toFixed(0)} LEADS</span>
-            </div>
+            <ul className="check-list">
+              {EVENT_TYPES.map(t=>{const on=types.includes(t);
+                return <li key={t}><label className="check">
+                  <input type="checkbox" checked={on} onChange={()=>setTypes(ts=>on?ts.filter(x=>x!==t):[...ts,t])}/>
+                  <span>{t}</span>
+                </label></li>;})}
+            </ul>
+          </details>
 
-            {ev.plan&&<div style={{marginTop:14,border:"1px solid var(--line2)",borderLeft:"3px solid "+c,borderRadius:4,padding:"12px 14px",background:"var(--panel)"}}>
-              <div className="lbl" style={{color:"var(--mut)",marginBottom:10}}>
-                ▸ BOOTH GAME PLAN {ev.plan.src==="template"&&<span style={{color:"var(--amber)"}}>· TEMPLATE</span>}
-              </div>
-              {[["HOOK",ev.plan.hook],["BOOTH",ev.plan.booth],["STAFFING",ev.plan.staff],
-                ["CAPTURE",ev.plan.capture],["FOLLOW-UP",ev.plan.follow],["ANGLE",ev.plan.angle]]
-                .filter(([,v])=>v).map(([k,v])=>
-                <p key={k} style={{margin:"0 0 8px",fontSize:13,lineHeight:1.55}}>
-                  <b className="mono" style={{color:c,fontSize:10.5,letterSpacing:".1em"}}>{k} · </b>
-                  <span style={{color:"var(--ink)"}}>{v}</span>
-                </p>)}
-            </div>}
+          <div className="finder-actions">
+            <button type="button" className="btn btn-primary btn-block" onClick={()=>onScout()} disabled={loading}>
+              {loading?<span className="spin" aria-hidden="true">◌</span>:<IconSearch/>}{loading?"Scanning…":"Scout events"}
+            </button>
+            <button type="button" className="btn btn-block" onClick={addManual}>Add manual event</button>
+          </div>
+          <div className="finder-foot">
+            <button type="button" role="switch" aria-checked={!!cfg.demo} className="switch" onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>
+              <span className="switch-track" aria-hidden="true"><span className="switch-thumb"></span></span>
+              <span>Demo data<span className="switch-hint">Labeled sample events, no model needed</span></span>
+            </button>
+            <button type="button" className="link-btn" style={{textAlign:"left"}} title="Reset cache and reload verified P0 national data"
+              onClick={()=>{store.set(KEY,"");setEvents(P0_SEED_EVENTS);setMarket("DALLAS, TX");setLastMarket("NATIONAL P0 HIGHLIGHTS");}}>Reset cache</button>
+            {lastMarket&&<p className="last-scan">Last scan: <b>{lastMarket}</b></p>}
+          </div>
+        </aside>
 
-            <div style={{display:"flex",gap:12,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
-              {ev.src&&<a className="mono" href={ev.src} target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:600,letterSpacing:".06em",color:"var(--accent-hover)"}}>↗ SOURCE LISTING</a>}
-              <button onClick={()=>removeEvent(ev.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--dim)",fontFamily:"var(--mono)",fontSize:11,letterSpacing:".08em",cursor:"pointer"}}>✕ REMOVE</button>
+        {/* ===== results ===== */}
+        <section className="results" aria-label="Results">
+          {loading&&<div role="status" aria-live="polite" className="banner banner-status">
+            <span className="spin" style={{color:"var(--accent)",fontSize:18}} aria-hidden="true">◌</span>
+            <div className="banner-body">
+              <strong>Scanning {market.trim()||"national"} · {radius} mi</strong>
+              <span>{searchStep||"Querying verified signals and calculating opportunity economics..."}</span>
             </div>
           </div>}
-        </article>;
-      })}
+          {error&&<div role="alert" aria-live="assertive" className="banner banner-error">
+            <span className="banner-body">{error}</span>
+            <div className="banner-actions">
+              {error.indexOf("NO MODEL LINK")===0&&<>
+                <button type="button" className="btn btn-sm btn-primary" onClick={()=>setShowModel(true)}>Connect a model</button>
+                <button type="button" className="btn btn-sm" onClick={()=>onScout(true)}>Run demo data</button>
+              </>}
+              <button type="button" className="btn btn-sm" onClick={()=>setError("")} aria-label="Dismiss error notification">Dismiss</button>
+            </div>
+          </div>}
 
-      {/* ===== empty state ===== */}
-      {events.length===0&&!loading&&searchedOnce&&<div role="status" aria-live="polite" style={{textAlign:"center",padding:"56px 20px",color:"var(--mut)"}}>
-        <div className="mono" style={{fontSize:36,color:"var(--amber)",opacity:.75}}>◎</div>
-        <div style={{fontWeight:700,color:"var(--ink)",fontSize:16,marginTop:10,letterSpacing:".03em"}}>
-          NO QUALIFYING SIGNALS IN {lastMarket?lastMarket.toUpperCase():(market.toUpperCase()||"THIS WINDOW")}
-        </div>
-        <div className="mono" style={{fontSize:12,marginTop:6,maxWidth:480,marginLeft:"auto",marginRight:"auto",lineHeight:1.6,color:"var(--dim)"}}>
-          No verified consumer events matched your active filters within {radius} miles. Widen your search radius or inspect sample events with demo data.
-        </div>
-        <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:16,flexWrap:"wrap"}}>
-          {radius<100&&<button className="btn btn-sm btn-hot" onClick={()=>{setRadius(100);setTimeout(()=>onScout(),50);}}>EXPAND RADIUS TO 100 MI</button>}
-          <button className="btn btn-sm" onClick={()=>onScout(true)}>RUN DEMO SIGNALS</button>
-          <button className="btn btn-sm btn-ghost" onClick={addManual}>+ ADD MANUAL EVENT</button>
-        </div>
-      </div>}
+          {events.length>0&&<div className="kpi" role="group" aria-label="Signal summary">
+            <div className="kpi-facts">
+              <div className="kpi-cell"><div className="kpi-label">Signals</div><div className="kpi-value">{fmtN(totals.count)}</div></div>
+              <div className="kpi-cell"><div className="kpi-label"><i className="dot dot-prime" aria-hidden="true"></i>Prime</div><div className="kpi-value">{fmtN(totals.prime)}</div></div>
+            </div>
+            <div className="kpi-proj">
+              <div className="kpi-proj-cap">Model projection · not confirmed with organizers</div>
+              <div className="kpi-proj-cells">
+                <div className="kpi-cell"><div className="kpi-label">Proj. leads</div><div className="kpi-value">{fmtN(totals.leads,0)}</div></div>
+                <div className="kpi-cell"><div className="kpi-label">Est. spend</div><div className="kpi-value">{fmtK(totals.cost)}</div></div>
+                <div className="kpi-cell"><div className="kpi-label">Proj. revenue</div><div className="kpi-value">{fmtK(totals.revenue)}</div></div>
+              </div>
+            </div>
+          </div>}
 
-      {events.length===0&&!loading&&!searchedOnce&&<div style={{textAlign:"center",padding:"64px 20px",color:"var(--mut)"}}>
-        <div className="mono" style={{fontSize:40,color:"var(--accent)",opacity:.7}}>◉</div>
-        <div style={{fontWeight:700,color:"var(--ink)",fontSize:16,marginTop:10,letterSpacing:".03em"}}>NO SIGNALS ON SCREEN</div>
-        <div className="mono" style={{fontSize:12,marginTop:6,maxWidth:440,marginLeft:"auto",marginRight:"auto",lineHeight:1.6,color:"var(--dim)"}}>
-          Enter a market, set your range, hit SCOUT. Events get pulled, scored 0–100 on your model, and ranked hot-to-cold. Flip on DEMO DATA to try it with no model connected.
-        </div>
-      </div>}
+          <p className="note"><IconInfo/><span><strong>Catalog signals are not a live availability feed.</strong> Confirm dates, attendance and vendor openings with the organizer. Leads and revenue are model projections.</span></p>
 
-      <footer style={{marginTop:50,marginBottom:30,paddingTop:28,borderTop:"1px solid var(--line)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12,textAlign:"center"}}>
-        <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:10,textDecoration:"none"}}>
+          {events.length>0&&<div className="queue-head">
+            <h2>Opportunity queue</h2>
+            <div className="queue-tools">
+              {anyDemo&&<span className="tag tag-caution">Sample data in list</span>}
+              {events.length>1&&<>
+                <span className="sort-label" id="sort-label">Rank by</span>
+                <div className="seg" role="group" aria-labelledby="sort-label">
+                  {[["score","Score"],["date","Date"],["cpl","CPL"]].map(([k,l])=>
+                    <button type="button" key={k} aria-pressed={sortBy===k} onClick={()=>setSortBy(k)}>{l}</button>)}
+                </div>
+              </>}
+            </div>
+          </div>}
+          {events.length>0&&<div className="score-key" aria-label="Score key">
+            <div className="key-track" aria-hidden="true">
+              <i className="k-pass" style={{flex:Math.max(keyPass,1)}}></i>
+              <i className="k-watch" style={{flex:Math.max(assump.strongAt-keyPass,1)}}></i>
+              <i className="k-prime" style={{flex:Math.max(100-assump.strongAt,1)}}></i>
+            </div>
+            <ul className="key-labels">
+              <li><i className="dot dot-pass" aria-hidden="true"></i>Pass: under {assump.condAt}</li>
+              <li><i className="dot dot-watch" aria-hidden="true"></i>Watchlist: {assump.condAt}+</li>
+              <li><i className="dot dot-prime" aria-hidden="true"></i>Prime: {assump.strongAt}+</li>
+            </ul>
+          </div>}
+
+          {/* ===== event cards ===== */}
+          {scored.map(({ev,m})=>{
+            const isOpen=!!open[ev.id];
+            const skipped=ev.status==="skip";
+            const cplOk=m.cpl!=null&&m.cpl<=assump.targetCPL;
+            const roiOk=m.roi!=null&&m.roi>=assump.targetROI;
+            return <article key={ev.id} className={"card"+(skipped?" is-skipped":"")}>
+              <div className="card-main">
+                <ScoreBadge score={m.score} verdict={m.verdict}/>
+                <div className="card-body">
+                  <h3 className="card-title">{ev.name}</h3>
+                  <p className="meta">
+                    <span className="when">{fmtDateY(ev.sd)}{ev.ed&&ev.ed!==ev.sd?" – "+fmtDateY(ev.ed):""}</span>
+                    <span>{ev.type}</span>
+                    {ev.mi!=null&&<span>{fmtN(ev.mi)} mi away</span>}
+                  </p>
+                  {(ev.venue||ev.city)&&<p className="meta meta-where">{[ev.venue,ev.city].filter(Boolean).join(", ")}</p>}
+                  {(ev.vStatus==="open"||ev.vStatus==="waitlist"||ev.appDeadline||ev.data==="demo"||skipped)&&<p className="meta meta-status">
+                    {ev.vStatus==="open"&&<span className="status-text"><i className="dot dot-good" aria-hidden="true"></i>Vendor applications open</span>}
+                    {ev.vStatus==="waitlist"&&<span className="status-text"><i className="dot dot-caution" aria-hidden="true"></i>Waitlist</span>}
+                    {ev.appDeadline&&<span className="status-text">Deadline: {ev.appDeadline}</span>}
+                    {ev.data==="demo"&&<span className="tag tag-caution">Sample data</span>}
+                    {skipped&&<span className="tag">Skipped</span>}
+                  </p>}
+                  {ev.note&&<p className="card-note">{ev.note}</p>}
+                </div>
+              </div>
+
+              <dl className="stats">
+                <div><dt>Attendance</dt><dd>{fmtN(ev.att)}</dd></div>
+                <div><dt>Est. leads</dt><dd>{fmtN(m.leads,0)}</dd></div>
+                <div className={cplOk?"is-good":""}><dt>CPL</dt><dd>{fmt$(m.cpl)}{cplOk&&<><span aria-hidden="true"> ✓</span><span className="sr-only"> (meets target)</span></>}</dd></div>
+                <div className={roiOk?"is-good":""}><dt>ROI</dt><dd>{fmtX(m.roi)}{roiOk&&<><span aria-hidden="true"> ✓</span><span className="sr-only"> (meets target)</span></>}</dd></div>
+                <div><dt>Est. revenue</dt><dd>{fmtK(m.revenue)}</dd></div>
+              </dl>
+
+              <div className="card-actions">
+                <button type="button" className="btn btn-sm btn-primary" onClick={()=>onPlan(ev.id)} disabled={!!planLoading[ev.id]}>
+                  {planLoading[ev.id]&&<span className="spin" aria-hidden="true">◌</span>}{ev.plan?"Rebuild plan":"Game plan"}
+                </button>
+                <div className="act-group" role="group" aria-label={"Pipeline status for "+ev.name}>
+                  <button type="button" aria-pressed={ev.status==="target"} onClick={()=>setStatus(ev.id,ev.status==="target"?"new":"target")}>Target</button>
+                  <button type="button" aria-pressed={ev.status==="booked"} onClick={()=>setStatus(ev.id,ev.status==="booked"?"new":"booked")}>Booked</button>
+                  <button type="button" aria-pressed={skipped} onClick={()=>setStatus(ev.id,skipped?"new":"skip")}>Skip</button>
+                </div>
+                <button type="button" className="toggle" aria-expanded={isOpen} aria-controls={isOpen?"detail-"+ev.id:undefined}
+                  aria-label={(isOpen?"Close details for ":"Adjust details for ")+ev.name} onClick={()=>setOpen(o=>({...o,[ev.id]:!isOpen}))}>
+                  {isOpen?"Close":"Adjust"}<i className="chev" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              {isOpen&&<div className="detail" id={"detail-"+ev.id}>
+                {/* ===== VENDOR INTELLIGENCE ===== */}
+                <section className="detail-sec" aria-label="Vendor intel">
+                  <div className="detail-head">
+                    <h4>Can I work this event?</h4>
+                    {ev.appDeadline&&<span className="tag tag-caution">Apply by {ev.appDeadline}</span>}
+                  </div>
+                  <dl className="facts">
+                    <div><dt>Booth cost</dt><dd>${ev.booth} typical 10x10</dd></div>
+                    {ev.homeVal&&<div><dt>Median home value</dt><dd>{ev.homeVal}</dd></div>}
+                    {ev.org&&<div><dt>Organizer</dt><dd>{ev.org}</dd></div>}
+                    {ev.orgContact&&<div className="is-wide"><dt>Contact</dt><dd>{ev.orgContact}</dd></div>}
+                    {ev.rules&&<div className="is-wide"><dt>Rules</dt><dd>{ev.rules}</dd></div>}
+                  </dl>
+
+                  <div className="vendor-action-bar">
+                    {ev.appUrl && (
+                      <a href={ev.appUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-primary">
+                        Open official vendor portal ↗
+                      </a>
+                    )}
+
+                    <a href={`https://www.google.com/search?q=${encodeURIComponent(ev.name + " " + (ev.city||"") + " vendor application exhibitor packet form")}`}
+                       target="_blank" rel="noreferrer" className="btn btn-sm"
+                       title="1-click live search for the latest 2026/2027 PDF vendor packet or application form">
+                      1-click vendor form (live search)
+                    </a>
+
+                    {(()=>{
+                      const contact = ev.orgContact || "";
+                      const emailMatch = contact.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                      const phoneMatch = contact.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+
+                      return <>
+                        {emailMatch && (
+                          <a href={`mailto:${emailMatch[0]}?subject=${encodeURIComponent("Vendor Booth Inquiry — " + ev.name)}&body=${encodeURIComponent("Hello,\n\nWe are interested in securing a vendor booth for " + ev.name + " (" + (ev.city || "") + "). Could you please send over the latest exhibitor packet, booth pricing, and application deadline?\n\nThank you!")}`}
+                             className="btn btn-sm">
+                            Email organizer
+                          </a>
+                        )}
+                        {phoneMatch && (
+                          <a href={`tel:${phoneMatch[0].replace(/[^0-9]/g, '')}`} className="btn btn-sm">
+                            Call {phoneMatch[0]}
+                          </a>
+                        )}
+                      </>;
+                    })()}
+
+                    {/* Calendar draft only: opening the link does not book or verify an event. */}
+                    <a href={buildGoogleCalUrl(ev, assump)} target="_blank" rel="noreferrer" className="btn btn-sm"
+                       title="Add booth dates, address, and lead goals directly into your Personal or Work Google Calendar">
+                      Add to Google Calendar
+                    </a>
+                  </div>
+                </section>
+
+                {/* ===== ADJUST ===== */}
+                <section className="detail-sec" aria-label="Adjust assumptions">
+                  <h4>Adjust assumptions</h4>
+                  <div className="assump-grid">
+                    <Num label="Attendance (expected)" value={ev.att} onChange={v=>patch(ev.id,{att:num(v),lo:Math.round(num(v)*0.8),hi:Math.round(num(v)*1.2)})}/>
+                    <Num label="Homeowners" suffix="%" value={Math.round(num(ev.ho,0.5)*100)} onChange={v=>patch(ev.id,{ho:clamp01(num(v)/100)})}/>
+                    <Num label="Booth cost" prefix="$" value={ev.booth} onChange={v=>patch(ev.id,{booth:num(v)})}/>
+                    <Num label="Sponsorship" prefix="$" value={ev.spons} onChange={v=>patch(ev.id,{spons:num(v)})}/>
+                    <Num label="Staffing" prefix="$" value={ev.staff} onChange={v=>patch(ev.id,{staff:num(v)})}/>
+                    <Num label="Travel + other" prefix="$" value={num(ev.travel)+num(ev.other)} onChange={v=>patch(ev.id,{travel:num(v),other:0})}/>
+                  </div>
+                  <p className="components">
+                    <span>Lead score <b>{m.leadScore.toFixed(0)}</b></span><span>CPL score <b>{m.cplScore.toFixed(0)}</b></span>
+                    <span>ROI score <b>{m.roiScore.toFixed(0)}</b></span><span>Homeowner score <b>{m.hoScore.toFixed(0)}</b></span>
+                    <span>Projected range <b>{m.leadsLo.toFixed(0)}–{m.leadsHi.toFixed(0)} leads</b></span>
+                  </p>
+                </section>
+
+                {ev.plan&&<section className="plan" aria-label="Booth game plan">
+                  <h4>Booth game plan {ev.plan.src==="template"&&<span className="tag tag-caution" style={{marginLeft:8}}>Template</span>}</h4>
+                  {[["Hook",ev.plan.hook],["Booth",ev.plan.booth],["Staffing",ev.plan.staff],
+                    ["Capture",ev.plan.capture],["Follow-up",ev.plan.follow],["Angle",ev.plan.angle]]
+                    .filter(([,v])=>v).map(([k,v])=>
+                    <p key={k}><b>{k}</b> {v}</p>)}
+                </section>}
+
+                <div className="detail-foot">
+                  {ev.src&&<a href={ev.src} target="_blank" rel="noreferrer" style={{fontSize:13,fontWeight:600}}>Source listing ↗</a>}
+                  <button type="button" className="link-btn is-danger" onClick={()=>removeEvent(ev.id)}>Remove event</button>
+                </div>
+              </div>}
+            </article>;
+          })}
+
+          {/* ===== empty states ===== */}
+          {events.length===0&&!loading&&searchedOnce&&<div role="status" aria-live="polite" className="empty">
+            <h2>No qualifying signals in {emptyMarket||"this window"}</h2>
+            <p>No verified consumer events matched your active filters within {radius} miles. Widen your search radius or inspect sample events with demo data.</p>
+            <div className="empty-actions">
+              {radius<100&&<button type="button" className="btn btn-primary" onClick={()=>{setRadius(100);setTimeout(()=>onScout(),50);}}>Expand radius to 100 mi</button>}
+              <button type="button" className="btn" onClick={()=>onScout(true)}>Run demo signals</button>
+              <button type="button" className="btn btn-quiet" onClick={addManual}>Add manual event</button>
+            </div>
+          </div>}
+
+          {events.length===0&&!loading&&!searchedOnce&&<div className="empty">
+            <h2>No signals on screen</h2>
+            <p>Enter a market, set your range, then choose Scout events. Events are pulled, scored 0–100 on your model, and ranked. Turn on demo data to try it with no model connected.</p>
+          </div>}
+        </section>
+      </div>
+
+      <footer className="site-foot">
+        <a className="site-foot-brand" href="https://jtfsoftware.com" target="_blank" rel="noreferrer">
           <svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true" focusable="false" style={{flex:"none"}}>
-            <path fill="#F6F4EF" d="M10 65.97 L91.5 25.22 L91.5 35.28 L31.06 65.5 L91.5 65.5 L91.5 76.5 L10 76.5 Z" />
+            <path fill="#14181F" d="M10 65.97 L91.5 25.22 L91.5 35.28 L31.06 65.5 L91.5 65.5 L91.5 76.5 L10 76.5 Z" />
             <rect x="80.5" y="33" width="11" height="38" fill="#FF3B00" />
           </svg>
-          <span className="mono" style={{fontWeight:600,fontSize:13,color:"#F6F4EF",letterSpacing:".18em",textTransform:"uppercase"}}>JTF SOFTWARE SOLUTIONS</span>
+          <span>JTF Software Solutions</span>
         </a>
-        <div className="mono" style={{fontSize:11,color:"var(--mut)",letterSpacing:".08em"}}>
-          Powered by <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer" style={{color:"var(--ink)",fontWeight:700}}>JTF Software Solutions</a> · Contractor Intelligence & Event Engine
+        <div className="site-foot-text">
+          Powered by <a href="https://jtfsoftware.com" target="_blank" rel="noreferrer">JTF Software Solutions</a> · Contractor Intelligence &amp; Event Engine
         </div>
-        <div className="mono" style={{fontSize:9.5,color:"var(--dim)",letterSpacing:".06em"}}>
-          FIELDRADAR · CONFIDENTIAL & PROPRIETARY · JTF SOFTWARE SOLUTIONS · ALL RIGHTS RESERVED
+        <div className="site-foot-legal">
+          FieldRadar · Confidential &amp; proprietary · JTF Software Solutions · All rights reserved
         </div>
       </footer>
     </main>
 
     {/* ===== export bar ===== */}
-    {events.length>0&&<div className="export-bar" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"rgba(9,13,22,.95)",backdropFilter:"blur(6px)",borderTop:"1px solid var(--line2)",padding:"10px 16px calc(10px + env(safe-area-inset-bottom))"}}>
-      <div className="wrap" style={{display:"flex",gap:8,alignItems:"center",padding:0}}>
-        <span className="lbl" style={{marginRight:"auto"}}>EXPORT → DEVICE</span>
-        <button className="btn btn-sm btn-hot" onClick={exportCSV}>⬇ CSV (MODEL)</button>
-        <button className="btn btn-sm" onClick={exportICS}>⬇ CALENDAR .ICS</button>
+    {events.length>0&&<div className="export-bar" role="region" aria-label="Export">
+      <div className="wrap export-inner">
+        <span className="export-label"><b>Export</b> to this device · CSV includes model projections</span>
+        <button type="button" className="btn btn-sm" onClick={exportCSV}>Export CSV</button>
+        <button type="button" className="btn btn-sm" onClick={exportICS}>Export calendar (.ics)</button>
       </div>
     </div>}
 
@@ -1389,43 +1588,43 @@ function App(){
     <ModalDrawer
       id="modal-coverage"
       titleId="coverage-dialog-title"
-      title="NATIONAL DATA-OPS & COVERAGE"
+      title="National data-ops & coverage"
       isOpen={showCoverage}
       onClose={()=>setShowCoverage(false)}
       triggerRef={coverageBtnRef}
     >
-      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>
+      <p className="drawer-lede">
         National Field Opportunity Intelligence Graph — Backbone status, active data adapters, and vendor opportunity completeness.
       </p>
 
-      <SectionLabel>DATA-OPS METRICS</SectionLabel>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
-        <div className="panel" style={{padding:"10px 12px"}}><Stat label="VERIFIED P0" value={P0_SEED_EVENTS.length} color="var(--cyan)"/></div>
-        <div className="panel" style={{padding:"10px 12px"}}><Stat label="APP LINKS" value="100%" color="var(--grn)"/></div>
-        <div className="panel" style={{padding:"10px 12px"}}><Stat label="DEADLINES" value="100%" color="var(--amber)"/></div>
-        <div className="panel" style={{padding:"10px 12px"}}><Stat label="ORGANIZERS" value="100%" color="var(--hot)"/></div>
+      <SectionLabel>Data-ops metrics</SectionLabel>
+      <div className="metric-grid">
+        <Metric label="Verified P0" value={P0_SEED_EVENTS.length}/>
+        <Metric label="App links" value="100%"/>
+        <Metric label="Deadlines" value="100%"/>
+        <Metric label="Organizers" value="100%"/>
       </div>
 
-      <SectionLabel>CONNECTED PLATFORM ADAPTERS</SectionLabel>
-      <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
-        <div><b style={{color:"var(--grn)"}}>● USDA Local Food Portal API</b> — 8,000+ Farmers Markets (P0)</div>
-        <div><b style={{color:"var(--grn)"}}>● Socrata SODA Open Data</b> — City Special Events & Street Permits</div>
-        <div><b style={{color:"var(--grn)"}}>● CivicPlus Municipal RSS</b> — City & County Parks & Rec Calendars</div>
-        <div><b style={{color:"var(--grn)"}}>● WordPress Tribe Events REST</b> — Chamber of Commerce & Festival Feeds</div>
-        <div><b style={{color:"var(--grn)"}}>● Census ACS Demographic Layer</b> — Housing Value & Owner-Occupancy</div>
-        <div><b style={{color:"var(--cyan)"}}>● DeepSeek / GPT-4o-Mini Scout</b> — Live Web & Vendor Packet Extractor</div>
-      </div>
+      <SectionLabel>Connected platform adapters</SectionLabel>
+      <ul className="plain-list">
+        <li><b>USDA Local Food Portal API</b> — 8,000+ Farmers Markets (P0)</li>
+        <li><b>Socrata SODA Open Data</b> — City Special Events &amp; Street Permits</li>
+        <li><b>CivicPlus Municipal RSS</b> — City &amp; County Parks &amp; Rec Calendars</li>
+        <li><b>WordPress Tribe Events REST</b> — Chamber of Commerce &amp; Festival Feeds</li>
+        <li><b>Census ACS Demographic Layer</b> — Housing Value &amp; Owner-Occupancy</li>
+        <li><b>DeepSeek / GPT-4o-Mini Scout</b> — Live Web &amp; Vendor Packet Extractor</li>
+      </ul>
 
-      <SectionLabel>STATE-BY-STATE P0 HIGHLIGHTS</SectionLabel>
-      <div className="mono" style={{fontSize:11.5,lineHeight:1.8,background:"var(--panel2)",padding:"10px 12px",borderRadius:4,border:"1px solid var(--line)"}}>
-        <div><b style={{color:"var(--ink)"}}>TEXAS (DFW · Tyler · Austin · Houston · SATX):</b> 7 Flagship Shows Verified</div>
-        <div><b style={{color:"var(--ink)"}}>ALABAMA (Mobile · Baldwin · Foley · Gulf Shores · BHM):</b> 4 Flagship Events Verified</div>
-        <div><b style={{color:"var(--ink)"}}>GEORGIA (Atlanta · Perry · Duluth/Gwinnett):</b> 3 Flagship Expos Verified</div>
-        <div><b style={{color:"var(--ink)"}}>FLORIDA & CAROLINAS (Tampa · Charlotte):</b> Hurricane & Remodeling Expos Verified</div>
-      </div>
+      <SectionLabel>State-by-state P0 highlights</SectionLabel>
+      <ul className="plain-list">
+        <li><b>Texas (DFW · Tyler · Austin · Houston · SATX):</b> 7 flagship shows verified</li>
+        <li><b>Alabama (Mobile · Baldwin · Foley · Gulf Shores · BHM):</b> 4 flagship events verified</li>
+        <li><b>Georgia (Atlanta · Perry · Duluth/Gwinnett):</b> 3 flagship expos verified</li>
+        <li><b>Florida &amp; Carolinas (Tampa · Charlotte):</b> Hurricane &amp; remodeling expos verified</li>
+      </ul>
 
-      <div style={{marginTop:20}}>
-        <button className="btn btn-sm btn-cyan" onClick={()=>setShowCoverage(false)}>RETURN TO TERMINAL</button>
+      <div style={{marginTop:22}}>
+        <button type="button" className="btn btn-sm" onClick={()=>setShowCoverage(false)}>Close</button>
       </div>
     </ModalDrawer>
 
@@ -1433,36 +1632,36 @@ function App(){
     <ModalDrawer
       id="modal-scoring"
       titleId="scoring-dialog-title"
-      title="SCORING MODEL"
+      title="Scoring model"
       isOpen={showScoring}
       onClose={()=>setShowScoring(false)}
       triggerRef={scoringBtnRef}
     >
-      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.5}}>Ported from the GA workbook. Edits re-score every event instantly and stick between sessions.</p>
-      <SectionLabel>FUNNEL DEFAULTS</SectionLabel>
+      <p className="drawer-lede">Ported from the GA workbook. Edits re-score every event instantly and stick between sessions.</p>
+      <SectionLabel>Funnel defaults</SectionLabel>
       <div className="grid2">
-        <Num label="AVG JOB VALUE" prefix="$" value={assump.jobValue} onChange={v=>setAssump(a=>({...a,jobValue:num(v)}))}/>
-        {[["engagement","ENGAGEMENT"],["qualified","QUALIFIED"],["capture","LEAD CAPTURE"],["appt","APPT SET"],["close","CLOSE RATE"]].map(([k,l])=>
+        <Num label="Average job value" prefix="$" value={assump.jobValue} onChange={v=>setAssump(a=>({...a,jobValue:num(v)}))}/>
+        {[["engagement","Engagement"],["qualified","Qualified"],["capture","Lead capture"],["appt","Appointment set"],["close","Close rate"]].map(([k,l])=>
           <Num key={k} label={l} suffix="%" value={Math.round(assump[k]*1000)/10} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v)/100)}))}/>)}
       </div>
-      <SectionLabel>SCORE TARGETS</SectionLabel>
+      <SectionLabel>Score targets</SectionLabel>
       <div className="grid3">
-        <Num label="LEADS" value={assump.targetLeads} onChange={v=>setAssump(a=>({...a,targetLeads:Math.max(1,num(v,1))}))}/>
+        <Num label="Leads" value={assump.targetLeads} onChange={v=>setAssump(a=>({...a,targetLeads:Math.max(1,num(v,1))}))}/>
         <Num label="CPL" prefix="$" value={assump.targetCPL} onChange={v=>setAssump(a=>({...a,targetCPL:Math.max(1,num(v,1))}))}/>
         <Num label="ROI" suffix="x" value={assump.targetROI} onChange={v=>setAssump(a=>({...a,targetROI:Math.max(0.1,num(v,1))}))}/>
       </div>
-      <SectionLabel>WEIGHTS {Math.abs(weightSum-1)>0.001&&<span style={{color:"var(--hot)"}}> — SUM {weightSum.toFixed(2)}, SHOULD BE 1.00</span>}</SectionLabel>
+      <SectionLabel>Weights {Math.abs(weightSum-1)>0.001&&<span className="warn-text">Sum is {weightSum.toFixed(2)}, should be 1.00</span>}</SectionLabel>
       <div className="grid2">
-        {[["wLead","LEAD VOLUME"],["wCPL","CPL EFFICIENCY"],["wROI","ROI"],["wHome","HOMEOWNER %"]].map(([k,l])=>
+        {[["wLead","Lead volume"],["wCPL","CPL efficiency"],["wROI","ROI"],["wHome","Homeowner %"]].map(([k,l])=>
           <Num key={k} label={l} step={0.05} value={assump[k]} onChange={v=>setAssump(a=>({...a,[k]:clamp01(num(v))}))}/>)}
       </div>
-      <SectionLabel>VERDICT THRESHOLDS</SectionLabel>
+      <SectionLabel>Verdict thresholds</SectionLabel>
       <div className="grid2">
-        <Num label="PRIME TARGET ≥" value={assump.strongAt} onChange={v=>setAssump(a=>({...a,strongAt:num(v)}))}/>
-        <Num label="WATCHLIST ≥" value={assump.condAt} onChange={v=>setAssump(a=>({...a,condAt:num(v)}))}/>
+        <Num label="Prime target at or above" value={assump.strongAt} onChange={v=>setAssump(a=>({...a,strongAt:num(v)}))}/>
+        <Num label="Watchlist at or above" value={assump.condAt} onChange={v=>setAssump(a=>({...a,condAt:num(v)}))}/>
       </div>
-      <div style={{marginTop:20}}>
-        <button className="btn btn-sm" onClick={()=>setAssump(DEFAULT_A)}>↺ RESET TO GA DEFAULTS</button>
+      <div style={{marginTop:22}}>
+        <button type="button" className="btn btn-sm" onClick={()=>setAssump(DEFAULT_A)}>Reset to GA defaults</button>
       </div>
     </ModalDrawer>
 
@@ -1470,66 +1669,68 @@ function App(){
     <ModalDrawer
       id="modal-model"
       titleId="model-dialog-title"
-      title="MODEL LINK"
+      title="Model link"
       isOpen={showModel}
       onClose={()=>setShowModel(false)}
       triggerRef={modelBtnRef}
     >
-      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:"6px 0 0",lineHeight:1.6}}>
+      <p className="drawer-lede">
         Live web scouting and AI game plans run directly on your own API key (Bring Your Own Key · BYOK). Paste an Anthropic or OpenRouter key below — keys remain stored in this browser only (localStorage) and are never shared or sent to intermediary servers.
       </p>
-      <SectionLabel>PROVIDER</SectionLabel>
-      <div style={{display:"flex",gap:6}}>
-        <button className={"tog"+(cfg.provider!=="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>ANTHROPIC DIRECT</button>
-        <button className={"tog"+(cfg.provider==="openrouter"?" on":"")} onClick={()=>{setCfg(c=>({...c,provider:"openrouter"}));setLinkState("untested");}}>OPENROUTER</button>
+      <SectionLabel>Provider</SectionLabel>
+      <div className="seg seg-wide" role="group" aria-label="Provider">
+        <button type="button" aria-pressed={cfg.provider!=="openrouter"} onClick={()=>{setCfg(c=>({...c,provider:"anthropic"}));setLinkState("untested");}}>Anthropic direct</button>
+        <button type="button" aria-pressed={cfg.provider==="openrouter"} onClick={()=>{setCfg(c=>({...c,provider:"openrouter"}));setLinkState("untested");}}>OpenRouter</button>
       </div>
       {cfg.provider==="openrouter"?<div>
-        <div className="field" style={{marginTop:12}}><label>
-          <span className="lbl">OPENROUTER API KEY</span>
-          <input className="mono" type="password" value={cfg.orKey} placeholder="sk-or-…"
+        <label className="field" style={{marginTop:14}}>
+          <span className="field-label">OpenRouter API key</span>
+          <input className="input is-code" type="password" value={cfg.orKey} placeholder="sk-or-…" autoComplete="off"
             onChange={e=>{setCfg(c=>({...c,orKey:e.target.value.trim()}));setLinkState("untested");}}/>
-        </label></div>
-        <div className="field" style={{marginTop:10}}><label>
-          <span className="lbl">MODEL SLUG</span>
-          <input className="mono" list="ormodels" value={cfg.orModel} placeholder="anthropic/claude-sonnet-4.5"
+        </label>
+        <label className="field" style={{marginTop:12}}>
+          <span className="field-label">Model slug</span>
+          <input className="input is-code" list="ormodels" value={cfg.orModel} placeholder="anthropic/claude-sonnet-4.5"
             onChange={e=>setCfg(c=>({...c,orModel:e.target.value.trim()}))}/>
           <datalist id="ormodels">{orList.map(id=><option key={id} value={id}/>)}</datalist>
-        </label></div>
-        <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
-          <button className="btn btn-sm" onClick={fetchModels}>⇣ FETCH MODEL LIST</button>
-          {orList.length>0&&<span className="mono" style={{fontSize:10,color:"var(--mut)"}}>{orList.length} MODELS LOADED — TYPE TO SEARCH</span>}
+        </label>
+        <div style={{display:"flex",gap:10,marginTop:10,alignItems:"center",flexWrap:"wrap"}}>
+          <button type="button" className="btn btn-sm" onClick={fetchModels}>Fetch model list</button>
+          {orList.length>0&&<span className="field-hint" style={{margin:0}}>{orList.length} models loaded — type to search</span>}
         </div>
-        <p className="mono" style={{fontSize:10,color:"var(--dim)",margin:"8px 0 0",lineHeight:1.5}}>
+        <p className="field-hint">
           Scouting attaches OpenRouter's web plugin for live listings — small added cost per scan. Game plans run on the base model.
         </p>
       </div>:<div>
-        <div className="field" style={{marginTop:12}}><label>
-          <span className="lbl">ANTHROPIC API KEY (BYOK)</span>
-          <input className="mono" type="password" value={cfg.apiKey} placeholder="sk-ant-…"
+        <label className="field" style={{marginTop:14}}>
+          <span className="field-label">Anthropic API key (BYOK)</span>
+          <input className="input is-code" type="password" value={cfg.apiKey} placeholder="sk-ant-…" autoComplete="off"
             onChange={e=>{setCfg(c=>({...c,apiKey:e.target.value.trim()}));setLinkState("untested");}}/>
-        </label></div>
-        <div className="field" style={{marginTop:10}}><label>
-          <span className="lbl">MODEL</span>
-          <select className="mono" value={cfg.model} onChange={e=>setCfg(c=>({...c,model:e.target.value}))}>
+        </label>
+        <label className="field" style={{marginTop:12}}>
+          <span className="field-label">Model</span>
+          <select className="select" value={cfg.model} onChange={e=>setCfg(c=>({...c,model:e.target.value}))}>
             <option value="claude-sonnet-4-6">claude-sonnet-4-6 · best scouting</option>
             <option value="claude-haiku-4-5">claude-haiku-4-5 · faster / cheaper</option>
           </select>
-        </label></div>
+        </label>
       </div>}
-      <div style={{display:"flex",gap:8,marginTop:14,alignItems:"center",flexWrap:"wrap"}}>
-        <button className="btn btn-sm btn-cyan" onClick={testLink}>⌁ TEST LINK</button>
-        <span className="mono" style={{fontSize:11,fontWeight:700,letterSpacing:".08em",
-          color:linkState==="ok"?"var(--grn)":linkState==="fail"?"var(--hot)":"var(--mut)"}}>
-          {linkState==="ok"?"● LINK UP":linkState==="fail"?"● LINK DOWN":"○ UNTESTED"}
+      <div style={{display:"flex",gap:12,marginTop:16,alignItems:"center",flexWrap:"wrap"}}>
+        <button type="button" className="btn btn-sm" onClick={testLink}>Test link</button>
+        <span className="link-state" role="status">
+          <i className={"dot "+(linkState==="ok"?"dot-good":linkState==="fail"?"dot-error":"dot-off")} aria-hidden="true"></i>
+          {linkState==="ok"?"Link up":linkState==="fail"?"Link down":"Untested"}
         </span>
       </div>
-      <SectionLabel>NO MODEL? NO PROBLEM</SectionLabel>
-      <p className="mono" style={{fontSize:11,color:"var(--mut)",margin:0,lineHeight:1.6}}>
-        Flip on DEMO DATA in the console. You get clearly-labeled sample events plus playbook-template game plans — the full workflow, scoring, and exports, zero setup.
+      <SectionLabel>No model? No problem</SectionLabel>
+      <p className="drawer-lede" style={{marginTop:0}}>
+        Turn on demo data. You get clearly-labeled sample events plus playbook-template game plans — the full workflow, scoring, and exports, zero setup.
       </p>
       <div style={{marginTop:10}}>
-        <button className={"tog"+(cfg.demo?" on":"")} style={cfg.demo?{borderColor:"var(--amber)",color:"var(--amber)"}:{}}
-          onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>{cfg.demo?"◆ DEMO DATA ON":"◇ DEMO DATA OFF"}</button>
+        <button type="button" role="switch" aria-checked={!!cfg.demo} className="switch" onClick={()=>setCfg(c=>({...c,demo:!c.demo}))}>
+          <span className="switch-track" aria-hidden="true"><span className="switch-thumb"></span></span>
+          <span>Demo data</span>
+        </button>
       </div>
     </ModalDrawer>
   </div>;

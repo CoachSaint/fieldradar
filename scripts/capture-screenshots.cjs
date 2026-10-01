@@ -48,73 +48,65 @@ async function capture() {
   const browser = await chromium.launch({ headless: true, executablePath });
 
   try {
-    // 1440 Desktop
-    const deskCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    const deskPage = await deskCtx.newPage();
-    await deskPage.goto(`http://localhost:${PORT}`, { waitUntil: 'networkidle' });
-    await deskPage.waitForTimeout(500);
-    await deskPage.screenshot({ path: path.join(outDir, '1440-dashboard.png'), fullPage: false });
-
-    // Expand first event
-    const detailToggle = deskPage.locator('article.card button[aria-expanded]').first();
-    await detailToggle.click();
-    await deskPage.waitForTimeout(300);
-    await deskPage.screenshot({ path: path.join(outDir, '1440-event-expanded.png'), fullPage: false });
-    await detailToggle.click();
-
-    // Modals
-    const modals = [
-      { name: 'scoring', sel: 'button[aria-controls="modal-scoring"]' },
-      { name: 'coverage', sel: 'button[aria-controls="modal-coverage"]' },
-      { name: 'model', sel: 'button[aria-controls="modal-model"]' }
+    // Every view at both widths: 1440 (desktop) and 390 (phone).
+    const widths = [
+      { w: 1440, h: 900, opts: {} },
+      { w: 390, h: 844, opts: { isMobile: true } },
     ];
+    for (const { w, h, opts } of widths) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: h }, ...opts });
+      const page = await ctx.newPage();
+      await page.goto(`http://localhost:${PORT}`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: path.join(outDir, `${w}-dashboard.png`), fullPage: false });
 
-    for (const m of modals) {
-      const btn = deskPage.locator(m.sel).first();
-      await btn.click();
-      await deskPage.waitForTimeout(300);
-      await deskPage.screenshot({ path: path.join(outDir, `1440-modal-${m.name}.png`), fullPage: false });
-      await deskPage.keyboard.press('Escape');
-      await deskPage.waitForTimeout(200);
+      // Expand first event
+      const detailToggle = page.locator('article.card button[aria-expanded]').first();
+      await detailToggle.click();
+      await page.waitForTimeout(300);
+      // The expanded card is taller than the viewport, so capture the whole card, not a crop of it.
+      // The sticky header and export bar are hidden for this one shot only: they would paint over the card.
+      await page.addStyleTag({ content: 'header.app-header,.export-bar{visibility:hidden!important}' });
+      await page.locator('article.card').first().screenshot({ path: path.join(outDir, `${w}-event-expanded.png`) });
+      await page.addStyleTag({ content: 'header.app-header,.export-bar{visibility:visible!important}' });
+      await detailToggle.click();
+
+      // Modals
+      const modals = [
+        { name: 'scoring', sel: 'button[aria-controls="modal-scoring"]' },
+        { name: 'coverage', sel: 'button[aria-controls="modal-coverage"]' },
+        { name: 'model', sel: 'button[aria-controls="modal-model"]' }
+      ];
+      for (const m of modals) {
+        await page.locator(m.sel).first().click();
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: path.join(outDir, `${w}-modal-${m.name}.png`), fullPage: false });
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(200);
+      }
+
+      // Game plan (demo data, so no model or key is involved): the template plan renders inside the card.
+      const demo = page.locator('aside.finder button[role="switch"]');
+      await demo.click();
+      await page.locator('article.card button:has-text("Game plan")').first().click();
+      await page.waitForTimeout(400);
+      await page.addStyleTag({ content: 'header.app-header,.export-bar{visibility:hidden!important}' });
+      await page.locator('article.card').first().screenshot({ path: path.join(outDir, `${w}-game-plan.png`) });
+      await page.addStyleTag({ content: 'header.app-header,.export-bar{visibility:visible!important}' });
+      await demo.click();
+
+      // Empty state (last: it replaces the event list)
+      await page.locator('input[aria-label="Market"]').fill('ANCHORAGE, AK');
+      await page.locator('button:has-text("SCOUT")').first().click();
+      await page.waitForTimeout(600);
+      const dialog = page.locator('div[role="dialog"]');
+      if (await dialog.isVisible()) {
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(200);
+      }
+      await page.screenshot({ path: path.join(outDir, `${w}-empty-state.png`), fullPage: false });
+      await ctx.close();
     }
-
-    // Empty state
-    const searchInput = deskPage.locator('input[aria-label="Market"]').first();
-    await searchInput.fill('ANCHORAGE, AK');
-    const scoutBtn = deskPage.locator('button:has-text("SCOUT")').first();
-    await scoutBtn.click();
-    await deskPage.waitForTimeout(600);
-    const dialog = deskPage.locator('div[role="dialog"]');
-    if (await dialog.isVisible()) {
-      await deskPage.keyboard.press('Escape');
-      await deskPage.waitForTimeout(200);
-    }
-    await deskPage.screenshot({ path: path.join(outDir, '1440-empty-state.png'), fullPage: false });
-    await deskCtx.close();
-
-    // 390 Mobile
-    const mobCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
-    const mobPage = await mobCtx.newPage();
-    await mobPage.goto(`http://localhost:${PORT}`, { waitUntil: 'networkidle' });
-    await mobPage.waitForTimeout(500);
-    await mobPage.screenshot({ path: path.join(outDir, '390-dashboard.png'), fullPage: false });
-
-    // Expand first event mobile
-    const mobDetailToggle = mobPage.locator('article.card button[aria-expanded]').first();
-    await mobDetailToggle.click();
-    await mobPage.waitForTimeout(300);
-    await mobPage.screenshot({ path: path.join(outDir, '390-event-expanded.png'), fullPage: false });
-    await mobDetailToggle.click();
-
-    // Mobile Modal
-    const mobModelBtn = mobPage.locator('button[aria-controls="modal-model"]').first();
-    await mobModelBtn.click();
-    await mobPage.waitForTimeout(300);
-    await mobPage.screenshot({ path: path.join(outDir, '390-modal-model.png'), fullPage: false });
-    await mobPage.keyboard.press('Escape');
-    await mobPage.waitForTimeout(200);
-
-    await mobCtx.close();
     console.log(`Captured all screenshots to ${outDir}`);
   } finally {
     await browser.close();
