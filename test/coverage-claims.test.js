@@ -154,3 +154,47 @@ test('catalog stats are computed from the bundled events, not typed in', () => {
   assert.match(stats, /P0_SEED_EVENTS\.filter/);
   assert.ok(!/(total|appUrl|deadline|org)\s*:\s*\d+/.test(stats), 'no literal totals in CATALOG_STATS');
 });
+
+test('every catalog event type is in EVENT_TYPES', () => {
+  const seed = JSON.parse(read('data_seed.json'));
+  const match = html.match(/const EVENT_TYPES\s*=\s*(\[[^\]]+\]);/);
+  assert.ok(match, 'EVENT_TYPES array must exist in index.html');
+  const eventTypes = JSON.parse(match[1]);
+  const catalogTypes = new Set(seed.map(e => e.type));
+  for (const t of catalogTypes) {
+    assert.ok(eventTypes.includes(t), `catalog event type "${t}" is missing from EVENT_TYPES`);
+  }
+});
+
+test('safeHttpUrl allows http/https and blocks javascript:alert(1) and other schemes', () => {
+  const match = html.match(/function safeHttpUrl\([^)]*\)\s*\{[\s\S]*?\n\}/);
+  assert.ok(match, 'safeHttpUrl function must exist in index.html');
+  const safeHttpUrl = new Function(`return (${match[0]});`)();
+  assert.equal(safeHttpUrl('https://example.com/portal'), 'https://example.com/portal');
+  assert.equal(safeHttpUrl('http://example.com'), 'http://example.com');
+  assert.equal(safeHttpUrl('javascript:alert(1)'), '');
+  assert.equal(safeHttpUrl('JAVASCRIPT:alert(1)'), '');
+  assert.equal(safeHttpUrl('data:text/html,<script>alert(1)</script>'), '');
+  assert.equal(safeHttpUrl('vbscript:msgbox(1)'), '');
+  assert.equal(safeHttpUrl('//evil.com'), '');
+  assert.equal(safeHttpUrl(''), '');
+  assert.equal(safeHttpUrl(null), '');
+  assert.equal(safeHttpUrl(undefined), '');
+});
+
+test('csvCell prevents formula injection by prefixing = + - @ tab and CR with a single quote', () => {
+  const match = html.match(/const csvCell\s*=\s*(v\s*=>\s*\{[\s\S]*?\});/);
+  assert.ok(match, 'csvCell function must exist in index.html');
+  const csvCell = new Function(`return (${match[1]});`)();
+  assert.equal(csvCell('=1+2'), "'=1+2");
+  assert.equal(csvCell('+cmd'), "'+cmd");
+  assert.equal(csvCell('-cmd'), "'-cmd");
+  assert.equal(csvCell('@SUM(A1)'), "'@SUM(A1)");
+  assert.equal(csvCell('\tcmd'), "'\tcmd");
+  assert.equal(csvCell('\rcmd'), "\"'\rcmd\"");
+  assert.equal(csvCell('safe text'), 'safe text');
+  assert.equal(csvCell('text, with comma'), '"text, with comma"');
+  assert.equal(csvCell(123), '123');
+  assert.equal(csvCell(null), '');
+});
+

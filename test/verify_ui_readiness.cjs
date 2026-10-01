@@ -180,6 +180,10 @@ async function runVerification() {
     const csvText = await page.evaluate(() => toCSV(P0_SEED_EVENTS.slice(0, 2), DEFAULT_A, 'TEST MARKET'));
     const csvLines = csvText.split('\r\n');
     record('CSV export ends with the "Powered by JTF Software Solutions" footer row', /Powered by JTF Software Solutions/.test(csvLines[csvLines.length - 1]));
+    const formulaTest = await page.evaluate(() => csvCell('=1+2') === "'=1+2" && csvCell('+cmd') === "'+cmd" && csvCell('@SUM') === "'@SUM");
+    record('CSV export escapes formula injection characters (= + - @)', formulaTest);
+    const safeUrlTest = await page.evaluate(() => safeHttpUrl('javascript:alert(1)') === '' && safeHttpUrl('https://valid.com') === 'https://valid.com');
+    record('URL sanitizer neutralizes javascript: schemes', safeUrlTest);
     await page.emulateMedia({ media: 'print' });
     record('Print output keeps the attribution in the header', await page.locator('header').getByText('Powered by JTF Software Solutions', { exact: false }).first().isVisible());
     record('Print output keeps the attribution in the footer', await page.locator('footer').getByText('Powered by JTF Software Solutions', { exact: false }).first().isVisible());
@@ -330,6 +334,8 @@ async function runVerification() {
     await page.locator('button[aria-controls="modal-model"]').first().click();
     await page.locator('#modal-model input[type="password"]').fill('SYNTHETIC-NONCREDENTIAL-STATUS-CHECK');
     await closeDrawer();
+    const headerDotClass = await page.locator('button.model-status i.dot').first().getAttribute('class');
+    record('Header model-status dot shows caution when key is saved but untested', headerDotClass.includes('dot-caution'));
     await openCoverage();
     record('Live scouting status follows a saved key ("Key saved · not tested", never "connected")',
       /Key saved · not tested/.test(await page.locator('#modal-coverage li[data-source-id="live-scout"]').innerText()));
@@ -357,17 +363,17 @@ async function runVerification() {
 
     console.log('\n=== EVENT TYPES MULTI-SELECT, SCORE BADGE, DEMO SWITCH ===');
     const typesSummary = page.locator('details.types > summary');
-    record('Event types start collapsed and summarise the selection as "All 12"',
-      !(await page.locator('details.types').evaluate(el => el.open)) && (await typesSummary.innerText()).includes('All 12'));
+    record('Event types start collapsed and summarise the selection as "All 13"',
+      !(await page.locator('details.types').evaluate(el => el.open)) && (await typesSummary.innerText()).includes('All 13'));
     await typesSummary.click();
     const typeBoxes = page.locator('details.types input[type="checkbox"]');
-    record('Event types expose twelve real checkboxes', await typeBoxes.count() === 12, `${await typeBoxes.count()} found`);
+    record('Event types expose thirteen real checkboxes', await typeBoxes.count() === 13, `${await typeBoxes.count()} found`);
     await typeBoxes.first().uncheck();
-    record('Unchecking one type updates the count to "11 of 12"', (await typesSummary.innerText()).includes('11 of 12'));
+    record('Unchecking one type updates the count to "12 of 13"', (await typesSummary.innerText()).includes('12 of 13'));
     await page.locator('details.types').getByRole('button', { name: 'Clear', exact: true }).click();
     record('Clear empties the selection and says it searches all types', (await typesSummary.innerText()).includes('None (searches all)'));
     await page.locator('details.types').getByRole('button', { name: 'Select all', exact: true }).click();
-    record('Select all restores "All 12"', (await typesSummary.innerText()).includes('All 12'));
+    record('Select all restores "All 13"', (await typesSummary.innerText()).includes('All 13'));
     await typesSummary.click();
 
     const badgeLabel = await page.locator('article.card .score').first().getAttribute('aria-label');

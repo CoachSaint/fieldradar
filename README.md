@@ -11,7 +11,7 @@ Live site: [fieldradar-terminal.vercel.app](https://fieldradar-terminal.vercel.a
 * **Find events near a market.** Type a city or ZIP; the page filters the bundled catalog by distance (Haversine, real coordinates) and event type.
 * **Bundled catalog.** `data_seed.json` is 103 curated events across 13 event types (county fairs, farmers markets, home shows, car shows, swap meets, B2B expos and more), each with application link, deadline, organizer, booth cost, attendance and a home-value note. It is a static list, not a live feed, and all 103 events are in Alabama, Texas, Georgia and Tennessee.
 * **Score and model.** Each event gets a 0–100 score and a tier (Prime, Watchlist, Pass), plus a projection of leads, spend and revenue from assumptions you can adjust. Projections are modeled, not measured.
-* **Game plans.** Template game plans work with no key. Live web scouting and AI game plans run from your own Anthropic or OpenRouter key, in your browser.
+* **Game plans.** Template game plans work with Demo data on. Live web scouting and AI game plans run from your own Anthropic or OpenRouter key, in your browser.
 * **Export.** CSV and calendar (.ics / Google Calendar) export.
 
 The **Sources & coverage** drawer lists exactly which sources this build uses and which are not connected. It is generated from the code and checked by `test/coverage-claims.test.js`.
@@ -44,7 +44,7 @@ node test/verify_ui_readiness.cjs   # rendered UI: function, keyboard, contrast,
 node scripts/axe-check.cjs          # accessibility scan (axe-core, needs Playwright)
 ```
 
-The two Playwright scripts need Playwright (`NODE_PATH`) and use a Chrome path hard-coded in the script. `package.json` has no `test` script, so nothing runs these automatically.
+The three Playwright scripts (including `scripts/capture-screenshots.cjs`) need Playwright (`NODE_PATH`) and use a Chrome path hard-coded in the script. `package.json` has no `test` script, so nothing runs these automatically.
 
 ## Deploy
 
