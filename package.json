@@ -1,7 +1,7 @@
 {
   "name": "fieldradar",
   "version": "1.0.0",
-  "description": "FieldRadar \u2014 Event Targeting Terminal",
+  "description": "FieldRadar \u2014 Field Opportunity Desk",
   "scripts": {
     "dev": "vercel dev",
     "build": "echo Ready"

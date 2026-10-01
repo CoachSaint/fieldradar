@@ -91,13 +91,40 @@ async function runVerification() {
     const hasUserScalableNo = viewportMeta.includes('user-scalable=no') || viewportMeta.includes('user-scalable=0');
     record('Viewport zoom enabled (no user-scalable=no)', !hasUserScalableNo, viewportMeta);
 
-    // 2. Contrast checks
-    const mutContrast = contrastRatio('#9BB0D1', '#080B10');
-    const dimContrast = contrastRatio('#788CAE', '#080B10');
-    const coldRampContrast = contrastRatio('#5A8EB9', '#080B10');
-    record('--mut token satisfies WCAG AA >= 4.5:1', mutContrast >= 4.5, `measured ${mutContrast}:1`);
-    record('--dim token satisfies WCAG AA >= 4.5:1', dimContrast >= 4.5, `measured ${dimContrast}:1`);
-    record('Cold score ramp token satisfies WCAG AA >= 4.5:1', coldRampContrast >= 4.5, `measured ${coldRampContrast}:1`);
+    // 2. Contrast checks. These read the REAL design tokens from the rendered
+    // page. (The previous version computed ratios from hex literals typed into
+    // this file, so it could never fail when the stylesheet changed.)
+    const tokens = await page.evaluate(() => {
+      const cs = getComputedStyle(document.documentElement);
+      const names = ['bg', 'surface', 'surface-2', 'surface-3', 'ink', 'ink-2', 'ink-3', 'accent', 'on-accent',
+        'tier-pass', 'tier-watch', 'tier-prime', 'good', 'good-tint', 'caution', 'caution-tint',
+        'error', 'error-tint'];
+      const out = {};
+      for (const n of names) out[n] = cs.getPropertyValue('--' + n).trim();
+      return out;
+    });
+    const missing = Object.entries(tokens).filter(([, v]) => !/^#[0-9a-fA-F]{6}$/.test(v)).map(([k]) => k);
+    record('All design tokens resolve to 6-digit hex values on the live page', missing.length === 0, missing.join(', '));
+    const textPairs = [
+      ['--ink on --bg', tokens.ink, tokens.bg],
+      ['--ink-2 (muted text) on --bg', tokens['ink-2'], tokens.bg],
+      ['--ink-3 (tertiary text) on --bg', tokens['ink-3'], tokens.bg],
+      ['--ink-3 (tertiary text) on --surface', tokens['ink-3'], tokens.surface],
+      ['--ink-2 on --surface-3', tokens['ink-2'], tokens['surface-3']],
+      ['--accent (links) on --surface', tokens.accent, tokens.surface],
+      ['--on-accent on --accent (primary button)', tokens['on-accent'], tokens.accent],
+      ['--good (meets-target text) on --surface-2', tokens.good, tokens['surface-2']],
+      ['--caution on --caution-tint (sample tags)', tokens.caution, tokens['caution-tint']],
+      ['--error on --error-tint (error banner)', tokens.error, tokens['error-tint']],
+    ];
+    for (const [name, fg, bg] of textPairs) {
+      const ratio = contrastRatio(fg, bg);
+      record(`${name} satisfies WCAG AA >= 4.5:1`, ratio >= 4.5, `measured ${ratio}:1`);
+    }
+    for (const [name, key] of [['pass', 'tier-pass'], ['watchlist', 'tier-watch'], ['prime', 'tier-prime']]) {
+      const ratio = contrastRatio(tokens[key], tokens.surface);
+      record(`Score tier "${name}" marker satisfies non-text contrast >= 3:1 on --surface`, ratio >= 3, `measured ${ratio}:1`);
+    }
 
     console.log('\n=== ATTRIBUTION ENFORCEMENT ===');
     // 3. Desktop attribution
@@ -124,6 +151,53 @@ async function runVerification() {
     await mobilePage.screenshot({ path: path.join(evidenceDir, 'evidence_mobile.png') });
     await mobileContext.close();
 
+    console.log('\n=== RESPONSIVE REFLOW: NO HORIZONTAL OVERFLOW ===');
+    for (const width of [320, 375, 390, 414, 768, 1024, 1440]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 844 }, isMobile: width < 700 });
+      const rp = await ctx.newPage();
+      await rp.goto(`http://localhost:${PORT}`, { waitUntil: 'networkidle' });
+      const measure = () => rp.evaluate(() => {
+        const W = document.documentElement.clientWidth;
+        const offenders = [];
+        document.querySelectorAll('body *').forEach(el => {
+          const r = el.getBoundingClientRect();
+          if (r.width > 0 && r.right > W + 1 && getComputedStyle(el).position !== 'fixed') {
+            offenders.push(el.tagName.toLowerCase() + '.' + String(el.className).split(' ')[0]);
+          }
+        });
+        return { W, scrollWidth: document.documentElement.scrollWidth, offenders: offenders.slice(0, 5) };
+      });
+      const closed = await measure();
+      await rp.locator('article.card button[aria-expanded]').first().click();
+      const expanded = await measure();
+      const clean = m => m.scrollWidth <= m.W && m.offenders.length === 0;
+      record(`${width}px: no horizontal scroll and nothing clipped past the edge (cards closed and expanded)`,
+        clean(closed) && clean(expanded), JSON.stringify(clean(closed) ? expanded : closed));
+      await ctx.close();
+    }
+
+    console.log('\n=== ATTRIBUTION IN CSV AND PRINT OUTPUT ===');
+    const csvText = await page.evaluate(() => toCSV(P0_SEED_EVENTS.slice(0, 2), DEFAULT_A, 'TEST MARKET'));
+    const csvLines = csvText.split('\r\n');
+    record('CSV export ends with the "Powered by JTF Software Solutions" footer row', /Powered by JTF Software Solutions/.test(csvLines[csvLines.length - 1]));
+    const formulaTest = await page.evaluate(() =>
+      csvCell('-12.5') === '-12.5' &&
+      csvCell('=SUM(A1)') === "'=SUM(A1)" &&
+      csvCell('-1+cmd') === "'-1+cmd" &&
+      csvCell('+cmd') === "'+cmd" &&
+      csvCell('@SUM') === "'@SUM"
+    );
+    record('CSV export escapes formula injection characters while preserving negative numbers', formulaTest);
+    const safeUrlTest = await page.evaluate(() => safeHttpUrl('javascript:alert(1)') === '' && safeHttpUrl('https://valid.com') === 'https://valid.com');
+    record('URL sanitizer neutralizes javascript: schemes', safeUrlTest);
+    await page.emulateMedia({ media: 'print' });
+    record('Print output keeps the attribution in the header', await page.locator('header').getByText('Powered by JTF Software Solutions', { exact: false }).first().isVisible());
+    record('Print output keeps the attribution in the footer', await page.locator('footer').getByText('Powered by JTF Software Solutions', { exact: false }).first().isVisible());
+    record('Print output hides interactive chrome (finder, export bar, panel buttons)',
+      !(await page.locator('aside.finder').isVisible()) && !(await page.locator('.export-bar').isVisible()) && !(await page.locator('.hdr-actions').isVisible()));
+    record('Print output still shows the opportunity cards', await page.locator('article.card').first().isVisible());
+    await page.emulateMedia({ media: 'screen' });
+
     console.log('\n=== EVENT DETAIL AND CALENDAR RECOVERY ===');
     const detailToggle = page.locator('article.card button[aria-expanded]').first();
     await detailToggle.click();
@@ -138,6 +212,11 @@ async function runVerification() {
     record('Calendar all-day end date is exclusive across year boundary', calendarDates.dates === '20261231/20270103');
     record('Calendar draft distinguishes projections and organizer confirmation', calendarDates.details.includes('Model projections') && calendarDates.details.includes('Confirm dates'));
     await detailToggle.click();
+    await detailToggle.focus();
+    await page.keyboard.press('Enter');
+    record('Card details open from the keyboard (Enter on the focused toggle)', await detailToggle.getAttribute('aria-expanded') === 'true');
+    await page.keyboard.press('Space');
+    record('Card details close from the keyboard (Space on the focused toggle)', await detailToggle.getAttribute('aria-expanded') === 'false');
 
     console.log('\n=== ACCESSIBLE MODAL DIALOGS & FOCUS TRAPPING ===');
     // 5. Modal Dialogs: SCORING, COVERAGE, MODEL
@@ -187,11 +266,11 @@ async function runVerification() {
 
         // Selecting a provider updates App state. The modal must retain focus
         // through that rerender; this does not call the provider or use a key.
-        const providerSwitch = dialog.getByRole('button', { name: 'OPENROUTER', exact: true });
+        const providerSwitch = dialog.getByRole('button', { name: 'OpenRouter', exact: true });
         await providerSwitch.click();
         await page.waitForTimeout(50);
         const focusRetained = await page.evaluate(() =>
-          document.activeElement?.textContent?.trim() === 'OPENROUTER'
+          document.activeElement?.textContent?.trim() === 'OpenRouter'
           && document.activeElement?.closest('[role="dialog"]') != null
         );
         record('Model Link keeps focus on provider control after rerender', focusRetained);
@@ -215,6 +294,69 @@ async function runVerification() {
       record(`${d.name} trigger button restores focus upon close`, focusRestored);
     }
 
+    console.log('\n=== COVERAGE DRAWER MAKES ONLY CLAIMS THE CODE CAN SHOW ===');
+    const openCoverage = async () => {
+      await page.locator('button[aria-controls="modal-coverage"]').first().click();
+      await page.waitForSelector('#modal-coverage');
+    };
+    const closeDrawer = async () => { await page.keyboard.press('Escape'); await page.waitForTimeout(150); };
+    const catalog = await page.evaluate(() => ({
+      total: P0_SEED_EVENTS.length,
+      appUrl: P0_SEED_EVENTS.filter(e => String(e.appUrl ?? '').trim() !== '').length,
+      deadline: P0_SEED_EVENTS.filter(e => String(e.appDeadline ?? '').trim() !== '').length,
+      org: P0_SEED_EVENTS.filter(e => String(e.org ?? '').trim() !== '').length,
+      registryIds: SOURCE_REGISTRY.map(s => s.id),
+      noneIds: SOURCE_REGISTRY.filter(s => s.kind === 'none').map(s => s.id),
+    }));
+    await openCoverage();
+    const drawer = page.locator('#modal-coverage');
+    const drawerText = await drawer.innerText();
+    const rows = drawer.locator('li[data-source-id]');
+    record('Every registered source is rendered as a row', await rows.count() === catalog.registryIds.length, `${await rows.count()} rows / ${catalog.registryIds.length} registered`);
+    let noneOk = true;
+    for (const id of catalog.noneIds) {
+      const rowText = await drawer.locator(`li[data-source-id="${id}"]`).innerText();
+      if (!/Not connected in this build/.test(rowText)) noneOk = false;
+    }
+    record('Every adapter with no call path says "Not connected in this build"', noneOk, catalog.noneIds.join(', '));
+    record('The drawer never says "connected" except as "Not connected in this build"', !/connected/i.test(drawerText.replace(/not connected in this build/gi, '')));
+    record('The drawer lists no DeepSeek / GPT-4o integration (none exists in the code)', !/deepseek|gpt-4o/i.test(drawerText));
+    const metricPct = async label => {
+      const m = drawer.locator('.metric', { hasText: label });
+      return (await m.locator('.kpi-value').innerText()).trim();
+    };
+    const pct = (n, tot) => Math.round(n / tot * 100) + '%';
+    record('Displayed percentages equal the values recomputed from the bundled catalog',
+      (await metricPct('Application link on file')) === pct(catalog.appUrl, catalog.total)
+      && (await metricPct('Deadline on file')) === pct(catalog.deadline, catalog.total)
+      && (await metricPct('Organizer on file')) === pct(catalog.org, catalog.total));
+    const stateCounts = await drawer.locator('ul.state-list li b').allInnerTexts();
+    record('Catalog-by-state counts add up to the catalog size', stateCounts.reduce((a, n) => a + Number(n), 0) === catalog.total, `${stateCounts.join('+')} = ${catalog.total}`);
+    const scoutRow = drawer.locator('li[data-source-id="live-scout"]');
+    record('Live scouting says it needs your own key when none is saved', /Needs your own key/.test(await scoutRow.innerText()));
+    await closeDrawer();
+
+    // Status follows real config: a saved (synthetic, noncredential) key, then demo mode.
+    await page.locator('button[aria-controls="modal-model"]').first().click();
+    await page.locator('#modal-model input[type="password"]').fill('SYNTHETIC-NONCREDENTIAL-STATUS-CHECK');
+    await closeDrawer();
+    const headerDotClass = await page.locator('button.model-status i.dot').first().getAttribute('class');
+    record('Header model-status dot shows caution when key is saved but untested', headerDotClass.includes('dot-caution'));
+    await openCoverage();
+    record('Live scouting status follows a saved key ("Key saved · not tested", never "connected")',
+      /Key saved · not tested/.test(await page.locator('#modal-coverage li[data-source-id="live-scout"]').innerText()));
+    await closeDrawer();
+    await page.locator('button[aria-controls="modal-model"]').first().click();
+    await page.locator('#modal-model input[type="password"]').fill('');
+    await closeDrawer();
+    const demoToggle = page.locator('aside.finder button[role="switch"]');
+    await demoToggle.click();
+    await openCoverage();
+    record('Demo data status says events are samples when demo mode is on',
+      /On: events are samples/.test(await page.locator('#modal-coverage li[data-source-id="demo-data"]').innerText()));
+    await closeDrawer();
+    await demoToggle.click();
+
     console.log('\n=== HONEST LOADING & EMPTY STATES ===');
     // 6. Context-aware empty state / search bar
     const searchInput = page.locator('input[aria-label="Market"]').first();
@@ -224,6 +366,32 @@ async function runVerification() {
     // Initial load renders seed cards
     const initialCardCount = await page.locator('article.card').count();
     record('Initial load renders verified seed event cards', initialCardCount > 0, `${initialCardCount} cards displayed`);
+
+    console.log('\n=== EVENT TYPES MULTI-SELECT, SCORE BADGE, DEMO SWITCH ===');
+    const typesSummary = page.locator('details.types > summary');
+    record('Event types start collapsed and summarise the selection as "All 13"',
+      !(await page.locator('details.types').evaluate(el => el.open)) && (await typesSummary.innerText()).includes('All 13'));
+    await typesSummary.click();
+    const typeBoxes = page.locator('details.types input[type="checkbox"]');
+    record('Event types expose thirteen real checkboxes', await typeBoxes.count() === 13, `${await typeBoxes.count()} found`);
+    await typeBoxes.first().uncheck();
+    record('Unchecking one type updates the count to "12 of 13"', (await typesSummary.innerText()).includes('12 of 13'));
+    await page.locator('details.types').getByRole('button', { name: 'Clear', exact: true }).click();
+    record('Clear empties the selection and says it searches all types', (await typesSummary.innerText()).includes('None (searches all)'));
+    await page.locator('details.types').getByRole('button', { name: 'Select all', exact: true }).click();
+    record('Select all restores "All 13"', (await typesSummary.innerText()).includes('All 13'));
+    await typesSummary.click();
+
+    const badgeLabel = await page.locator('article.card .score').first().getAttribute('aria-label');
+    record('Score badge exposes number and tier to assistive tech', /^Score \d{1,3} out of 100, (Prime|Watchlist|Pass)$/.test(badgeLabel || ''), badgeLabel);
+    const demoSwitch = page.locator('aside.finder button[role="switch"]');
+    const demoBefore = await demoSwitch.getAttribute('aria-checked');
+    await demoSwitch.click();
+    const demoAfter = await demoSwitch.getAttribute('aria-checked');
+    await demoSwitch.click();
+    record('Demo data is a real switch that toggles aria-checked', demoBefore === 'false' && demoAfter === 'true' && await demoSwitch.getAttribute('aria-checked') === 'false');
+    record('Truthfulness note is visible beside the projections',
+      await page.locator('p.note').getByText('Leads and revenue are model projections.', { exact: false }).isVisible());
 
     // Now test searching for a remote market with no seed signals (e.g. ANCHORAGE, AK)
     await searchInput.fill('ANCHORAGE, AK');
