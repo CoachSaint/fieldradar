@@ -59,8 +59,7 @@ hosted-AI 503 boundary (`api/ai.js` untouched).
   in this build" because nothing in the app or API calls them; the DeepSeek / GPT-4o-Mini entry
   was removed (no such code). The old hard-coded state "highlights" (TX 7, AL 4, GA 3, FL/Carolinas)
   contradicted the bundled data (AL 37, TX 30, GA 19, TN 17, no FL/SC/NC) and are gone.
-  Still inaccurate and out of scope here: README.md says `api/ai.js` is an "OpenRouter LLM scout
-  with live web search" (it returns 503) and that `data_seed.json` has "86+" events (it has 103).
+  README.md was corrected in the same branch (hosted AI 503, 103 events, lib/ adapters not wired in).
 - Market suggestions are mouse-only (pre-existing); the field itself is keyboard
   operable and Enter scouts.
-- `README.md`, `package.json` and the Vercel project name still say "terminal".
+- The Vercel project name (`fieldradar-terminal`) and its URL still say "terminal"; renaming the project is the owner's call.

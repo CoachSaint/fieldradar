@@ -1,73 +1,51 @@
-# 📡 FieldRadar — National Field Event Targeting & Vendor Intelligence Terminal
+# FieldRadar — Field Opportunity Desk
 
-**Production Terminal:** [https://fieldradar-terminal.vercel.app](https://fieldradar-terminal.vercel.app)
+Powered by JTF Software Solutions
 
-FieldRadar is an intelligent field event sourcing, geographic geofencing, and ROI scoring terminal built for residential contractors, exterior remodelers (roofing, windows, gutters, solar), and home-services sales teams.
+A single-page desk for deciding which local events a home-services sales team should work (roofing is the configured vertical): find events near a market, see whether a booth is open to you, and model the return before you commit.
 
----
+Live site: [fieldradar-terminal.vercel.app](https://fieldradar-terminal.vercel.app) (the Vercel project keeps its old name).
 
-## 🚀 Key Features
+## What it does
 
-* **⚡ Instant National Market & ZIP Autocomplete:** 0ms fuzzy search across 200+ top US metros, counties, and 5-digit ZIP codes with standardized state anchoring.
-* **📐 Strict Haversine Geo-Separator Engine:** Mathematical distance filtering down to 0.1 miles using real GPS coordinates. Eliminates cross-state city name bleed (e.g. Greenville SC vs TX).
-* **🌾 Comprehensive Event Discovery Spectrum:**
-  * Major Home & Remodeling Expos (Nationwide Expos, ACS, Marketplace Events)
-  * Weekly & Weekend Farmers Markets (USDA & Municipal)
-  * County & State Agricultural Fairs & Festivals
-  * Community & HOA Subdivision Yard Sale Trails ($0 booth cost, 100% homeowners)
-  * Car Shows, Rod Runs & Cruise-Ins (High disposable income & garage investment)
-  * Craft Shows, Makers Markets & Holiday Bazaars
-  * Mega Flea Markets & Swap Meets (Canton First Monday, Traders Village)
-  * B2B & Chamber Real Estate / Contractor Expos
-* **💼 "Can I Work This Event?" Vendor Intelligence:** Direct organizer application links, registration deadlines, status badges, booth costs, organizer contacts, and housing demographics (median home value & owner occupancy rate).
-* **📊 Multi-Vertical ROI Opportunity Scoring:** Algorithmic ranking engine adapted from home-services production workbook math for Roofing, Windows/Doors, Gutters, and Solar.
-* **📅 Multi-Format Export:** 1-click CSV export with complete vendor schema and calendar (.ics) generation.
+* **Find events near a market.** Type a city or ZIP; the page filters the bundled catalog by distance (Haversine, real coordinates) and event type.
+* **Bundled catalog.** `data_seed.json` is 103 curated events across 13 event types (county fairs, farmers markets, home shows, car shows, swap meets, B2B expos and more), each with application link, deadline, organizer, booth cost, attendance and a home-value note. It is a static list, not a live feed, and all 103 events are in Alabama, Texas, Georgia and Tennessee.
+* **Score and model.** Each event gets a 0–100 score and a tier (Prime, Watchlist, Pass), plus a projection of leads, spend and revenue from assumptions you can adjust. Projections are modeled, not measured.
+* **Game plans.** Template game plans work with no key. Live web scouting and AI game plans run from your own Anthropic or OpenRouter key, in your browser.
+* **Export.** CSV and calendar (.ics / Google Calendar) export.
 
----
+The **Sources & coverage** drawer lists exactly which sources this build uses and which are not connected. It is generated from the code and checked by `test/coverage-claims.test.js`.
 
-## 🛠️ Architecture & Tech Stack
+## What it does not do
+
+* **Hosted AI is unavailable.** `api/ai.js` refuses every request with HTTP 503 (`HOSTED_AI_UNAVAILABLE`): this build has no server-side identity or spend limits. The page never calls it; use Model link with your own key.
+* **The `lib/` adapters are not wired in.** USDA, Socrata, CivicPlus, WordPress Tribe, Eventbrite, promoter networks and Census ACS enrichment exist as modules with tests, but nothing in the app or API calls them. The app does not import `lib/` at all, so its scoring is its own code (roofing only), not `lib/scoring`.
+* **Live network calls are only** market and ZIP lookup (OpenStreetMap Nominatim, Zippopotam.us) and the AI call made with your own key. The built-in market list has 53 entries; anything else goes to the lookup.
+
+## Layout
 
 ```
-fieldradar/
-├── api/
-│   └── ai.js               # Vercel Serverless OpenRouter LLM scout with live web search
-├── lib/
-│   ├── canonical-schema.js # Canonical data model & validator
-│   ├── adapters/
-│   │   ├── major-promoters.js     # Nationwide Expos, ACS, Marketplace Events
-│   │   ├── eventbrite-discovery.js # Eventbrite public vendor markets
-│   │   ├── usda-local-food.js     # USDA Farmers Market Portal API
-│   │   ├── socrata-soda.js        # City Open Data permit feeds
-│   │   ├── civicplus-rss.js       # Municipal civic calendar RSS parser
-│   │   └── wordpress-tribe.js     # WP The Events Calendar REST API
-│   ├── scoring/
-│   │   ├── opportunity-scoring.js # Multi-vertical CPL / ROI math
-│   │   └── dedupe-resolver.js    # Geo-spatial & Levenshtein entity resolution
-│   ├── enrichment/
-│   │   └── census-acs.js          # US Census ACS median home value & owner occupancy
-│   └── coverage/
-│       └── coverage-dashboard.js  # National coverage gap tracker
-├── public/
-│   └── index.html          # High-speed reactive terminal UI + interactive radar
-├── data_seed.json          # Curated master P0 database (86+ verified booth opportunities)
-└── test/
-    └── test_all_phases.js  # Automated test suite (25/25 checks passing)
+api/ai.js                 hosted-AI endpoint: always 503
+lib/                      adapters, scoring, dedupe, enrichment, coverage (tested, not used by the app)
+public/index.html         the whole app (React 18 UMD + inline JSX, no build step)
+data_seed.json            bundled catalog, 103 events
+test/                     test_all_phases.js, ai-boundary.test.js, coverage-claims.test.js, verify_ui_readiness.cjs
+scripts/                  capture-screenshots.cjs, axe-check.cjs
+docs/redesign-2026-10/    design direction, test changes, screenshots
 ```
 
----
+## Checks
 
-## 🧪 Testing & Verification
-
-Run the full automated test suite:
 ```bash
-node test/test_all_phases.js
+node test/test_all_phases.js        # lib/ modules (25 checks)
+node test/ai-boundary.test.js       # hosted AI stays unavailable (503)
+node test/coverage-claims.test.js   # the coverage drawer claims only what the code shows
+node test/verify_ui_readiness.cjs   # rendered UI: function, keyboard, contrast, reflow (Playwright)
+node scripts/axe-check.cjs          # accessibility scan (axe-core, needs Playwright)
 ```
 
----
+The two Playwright scripts need Playwright (`NODE_PATH`) and use a Chrome path hard-coded in the script. `package.json` has no `test` script, so nothing runs these automatically.
 
-## 🌐 Deployment
+## Deploy
 
-Deployed serverless on Vercel:
-```bash
-npx vercel deploy --prod
-```
+Static site plus one function on Vercel (`vercel.json` has rewrites only).
