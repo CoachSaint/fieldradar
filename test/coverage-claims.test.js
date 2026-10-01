@@ -182,11 +182,15 @@ test('safeHttpUrl allows http/https and blocks javascript:alert(1) and other sch
   assert.equal(safeHttpUrl(undefined), '');
 });
 
-test('csvCell prevents formula injection by prefixing = + - @ tab and CR with a single quote', () => {
+test('csvCell prevents formula injection while preserving negative numbers', () => {
   const match = html.match(/const csvCell\s*=\s*(v\s*=>\s*\{[\s\S]*?\});/);
   assert.ok(match, 'csvCell function must exist in index.html');
   const csvCell = new Function(`return (${match[1]});`)();
-  assert.equal(csvCell('=1+2'), "'=1+2");
+  assert.equal(csvCell('-12.5'), '-12.5');
+  assert.equal(csvCell(-12.5), '-12.5');
+  assert.equal(csvCell('-12'), '-12');
+  assert.equal(csvCell('=SUM(A1)'), "'=SUM(A1)");
+  assert.equal(csvCell('-1+cmd'), "'-1+cmd");
   assert.equal(csvCell('+cmd'), "'+cmd");
   assert.equal(csvCell('-cmd'), "'-cmd");
   assert.equal(csvCell('@SUM(A1)'), "'@SUM(A1)");

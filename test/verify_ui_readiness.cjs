@@ -180,8 +180,14 @@ async function runVerification() {
     const csvText = await page.evaluate(() => toCSV(P0_SEED_EVENTS.slice(0, 2), DEFAULT_A, 'TEST MARKET'));
     const csvLines = csvText.split('\r\n');
     record('CSV export ends with the "Powered by JTF Software Solutions" footer row', /Powered by JTF Software Solutions/.test(csvLines[csvLines.length - 1]));
-    const formulaTest = await page.evaluate(() => csvCell('=1+2') === "'=1+2" && csvCell('+cmd') === "'+cmd" && csvCell('@SUM') === "'@SUM");
-    record('CSV export escapes formula injection characters (= + - @)', formulaTest);
+    const formulaTest = await page.evaluate(() =>
+      csvCell('-12.5') === '-12.5' &&
+      csvCell('=SUM(A1)') === "'=SUM(A1)" &&
+      csvCell('-1+cmd') === "'-1+cmd" &&
+      csvCell('+cmd') === "'+cmd" &&
+      csvCell('@SUM') === "'@SUM"
+    );
+    record('CSV export escapes formula injection characters while preserving negative numbers', formulaTest);
     const safeUrlTest = await page.evaluate(() => safeHttpUrl('javascript:alert(1)') === '' && safeHttpUrl('https://valid.com') === 'https://valid.com');
     record('URL sanitizer neutralizes javascript: schemes', safeUrlTest);
     await page.emulateMedia({ media: 'print' });

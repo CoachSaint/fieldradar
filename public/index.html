@@ -700,7 +700,7 @@ function download(filename,text,mime){
     setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},150);
   }catch(e){console.error("download failed",e);}
 }
-const csvCell=v=>{let s=v==null?"":String(v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+const csvCell=v=>{let s=v==null?"":String(v);if(/^[=+\-@\t\r]/.test(s)&&!/^-?\d+(\.\d+)?$/.test(s))s="'"+s;return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
 function toCSV(events,A,marketLabel){
   const head=["Event Name","Region","City","Venue","Start Date","End Date","Event Type",
     "Attendance Low","Attendance Expected","Attendance High","% Homeowners","% Homes 10+ yrs",
