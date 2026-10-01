@@ -80,7 +80,17 @@ async function capture() {
       for (const m of modals) {
         await page.locator(m.sel).first().click();
         await page.waitForTimeout(300);
-        await page.screenshot({ path: path.join(outDir, `${w}-modal-${m.name}.png`), fullPage: false });
+        if (m.name === 'coverage') {
+          // The Sources & coverage drawer is taller than the viewport: grow the viewport to its content
+          // for this one shot so the whole drawer is on record, then restore it.
+          const contentHeight = await page.evaluate(() => document.querySelector('.drawer > div').scrollHeight);
+          await page.setViewportSize({ width: w, height: Math.max(h, contentHeight) });
+          await page.waitForTimeout(200);
+          await page.screenshot({ path: path.join(outDir, `${w}-modal-coverage.png`), fullPage: false });
+          await page.setViewportSize({ width: w, height: h });
+        } else {
+          await page.screenshot({ path: path.join(outDir, `${w}-modal-${m.name}.png`), fullPage: false });
+        }
         await page.keyboard.press('Escape');
         await page.waitForTimeout(200);
       }

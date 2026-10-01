@@ -51,10 +51,16 @@ hosted-AI 503 boundary (`api/ai.js` untouched).
   game-plan view; `scripts/axe-check.cjs` is new (axe-core 4.10.2 from cdnjs).
 
 ## Known gaps / not changed
-- The Coverage drawer still claims adapters are "Connected" and shows 100% stats.
-  The front end never calls those adapters, so this copy cannot be verified from
-  the UI. Copy left as-is; the green "connected" dots were removed so the visual
-  design no longer asserts it. Recommend an audit by whoever owns the data layer.
+- (Resolved in a follow-up) The Coverage drawer is now "Sources & coverage". It renders from
+  `SOURCE_REGISTRY` in `public/index.html`: each source's `kind` is a claim about the code, and
+  `test/coverage-claims.test.js` checks it (no call path for "none", a real `fetch()` for
+  browser/BYOK, 503 for hosted AI, no hand-typed percentages, no bare "connected"). Catalog
+  figures are computed from the bundled events. Seven lib/ adapters are labeled "Not connected
+  in this build" because nothing in the app or API calls them; the DeepSeek / GPT-4o-Mini entry
+  was removed (no such code). The old hard-coded state "highlights" (TX 7, AL 4, GA 3, FL/Carolinas)
+  contradicted the bundled data (AL 37, TX 30, GA 19, TN 17, no FL/SC/NC) and are gone.
+  Still inaccurate and out of scope here: README.md says `api/ai.js` is an "OpenRouter LLM scout
+  with live web search" (it returns 503) and that `data_seed.json` has "86+" events (it has 103).
 - Market suggestions are mouse-only (pre-existing); the field itself is keyboard
   operable and Enter scouts.
 - `README.md`, `package.json` and the Vercel project name still say "terminal".

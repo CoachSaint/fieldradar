@@ -284,6 +284,67 @@ async function runVerification() {
       record(`${d.name} trigger button restores focus upon close`, focusRestored);
     }
 
+    console.log('\n=== COVERAGE DRAWER MAKES ONLY CLAIMS THE CODE CAN SHOW ===');
+    const openCoverage = async () => {
+      await page.locator('button[aria-controls="modal-coverage"]').first().click();
+      await page.waitForSelector('#modal-coverage');
+    };
+    const closeDrawer = async () => { await page.keyboard.press('Escape'); await page.waitForTimeout(150); };
+    const catalog = await page.evaluate(() => ({
+      total: P0_SEED_EVENTS.length,
+      appUrl: P0_SEED_EVENTS.filter(e => String(e.appUrl ?? '').trim() !== '').length,
+      deadline: P0_SEED_EVENTS.filter(e => String(e.appDeadline ?? '').trim() !== '').length,
+      org: P0_SEED_EVENTS.filter(e => String(e.org ?? '').trim() !== '').length,
+      registryIds: SOURCE_REGISTRY.map(s => s.id),
+      noneIds: SOURCE_REGISTRY.filter(s => s.kind === 'none').map(s => s.id),
+    }));
+    await openCoverage();
+    const drawer = page.locator('#modal-coverage');
+    const drawerText = await drawer.innerText();
+    const rows = drawer.locator('li[data-source-id]');
+    record('Every registered source is rendered as a row', await rows.count() === catalog.registryIds.length, `${await rows.count()} rows / ${catalog.registryIds.length} registered`);
+    let noneOk = true;
+    for (const id of catalog.noneIds) {
+      const rowText = await drawer.locator(`li[data-source-id="${id}"]`).innerText();
+      if (!/Not connected in this build/.test(rowText)) noneOk = false;
+    }
+    record('Every adapter with no call path says "Not connected in this build"', noneOk, catalog.noneIds.join(', '));
+    record('The drawer never says "connected" except as "Not connected in this build"', !/connected/i.test(drawerText.replace(/not connected in this build/gi, '')));
+    record('The drawer lists no DeepSeek / GPT-4o integration (none exists in the code)', !/deepseek|gpt-4o/i.test(drawerText));
+    const metricPct = async label => {
+      const m = drawer.locator('.metric', { hasText: label });
+      return (await m.locator('.kpi-value').innerText()).trim();
+    };
+    const pct = (n, tot) => Math.round(n / tot * 100) + '%';
+    record('Displayed percentages equal the values recomputed from the bundled catalog',
+      (await metricPct('Application link on file')) === pct(catalog.appUrl, catalog.total)
+      && (await metricPct('Deadline on file')) === pct(catalog.deadline, catalog.total)
+      && (await metricPct('Organizer on file')) === pct(catalog.org, catalog.total));
+    const stateCounts = await drawer.locator('ul.state-list li b').allInnerTexts();
+    record('Catalog-by-state counts add up to the catalog size', stateCounts.reduce((a, n) => a + Number(n), 0) === catalog.total, `${stateCounts.join('+')} = ${catalog.total}`);
+    const scoutRow = drawer.locator('li[data-source-id="live-scout"]');
+    record('Live scouting says it needs your own key when none is saved', /Needs your own key/.test(await scoutRow.innerText()));
+    await closeDrawer();
+
+    // Status follows real config: a saved (synthetic, noncredential) key, then demo mode.
+    await page.locator('button[aria-controls="modal-model"]').first().click();
+    await page.locator('#modal-model input[type="password"]').fill('SYNTHETIC-NONCREDENTIAL-STATUS-CHECK');
+    await closeDrawer();
+    await openCoverage();
+    record('Live scouting status follows a saved key ("Key saved · not tested", never "connected")',
+      /Key saved · not tested/.test(await page.locator('#modal-coverage li[data-source-id="live-scout"]').innerText()));
+    await closeDrawer();
+    await page.locator('button[aria-controls="modal-model"]').first().click();
+    await page.locator('#modal-model input[type="password"]').fill('');
+    await closeDrawer();
+    const demoToggle = page.locator('aside.finder button[role="switch"]');
+    await demoToggle.click();
+    await openCoverage();
+    record('Demo data status says events are samples when demo mode is on',
+      /On: events are samples/.test(await page.locator('#modal-coverage li[data-source-id="demo-data"]').innerText()));
+    await closeDrawer();
+    await demoToggle.click();
+
     console.log('\n=== HONEST LOADING & EMPTY STATES ===');
     // 6. Context-aware empty state / search bar
     const searchInput = page.locator('input[aria-label="Market"]').first();

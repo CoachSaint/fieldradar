@@ -285,6 +285,15 @@
   .metric .kpi-value{font-size:22px}
   .plain-list{margin:0;padding:12px 14px;list-style:none;display:grid;gap:8px;font-size:13.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius)}
   .plain-list b{font-weight:600}
+  .metric-note{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+  .state-list li{display:flex;justify-content:space-between;gap:12px}
+  .source-list{list-style:none;margin:10px 0 0;padding:0;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2)}
+  .source-row{padding:12px 14px}
+  .source-row+.source-row{border-top:1px solid var(--line)}
+  .source-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .source-name{font-size:14px;font-weight:600}
+  .source-status{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+  .source-detail{margin:4px 0 0;font-size:13px;line-height:1.5;color:var(--ink-2)}
   .seg-wide{display:flex}
   .seg-wide button{flex:1}
   .link-state{font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--ink-2)}
@@ -742,6 +751,65 @@ function buildGoogleCalUrl(ev,A){
   return "https://calendar.google.com/calendar/render?"+params.toString();
 }
 
+/* ============ DATA SOURCES IN THIS BUILD ============ */
+/* The Coverage drawer renders ONLY from this registry, computed catalog stats, and live config.
+   `kind` is a claim about the code, and test/coverage-claims.test.js checks it against the code:
+     bundled / generated  data or code inside this file
+     browser              the page itself calls the evidence hosts with fetch()
+     byok                 the page calls the user's own provider with fetch() using the user's key
+     unavailable          refused by design (api/ai.js answers 503 and nothing here calls it)
+     none                 library code in the repo that nothing in the app or API calls
+   JSON on purpose, so the test can parse it. */
+/* SOURCE_REGISTRY:BEGIN */
+const SOURCE_REGISTRY = [
+  {"id":"bundled-catalog","kind":"bundled","name":"Bundled catalog","detail":"Curated events shipped inside this build. A static list, not a live feed."},
+  {"id":"geocoding","kind":"browser","name":"Market and ZIP lookup","detail":"OpenStreetMap Nominatim and Zippopotam.us, called from your browser as you type a market. No key needed.","evidence":["nominatim.openstreetmap.org","api.zippopotam.us"]},
+  {"id":"live-scout","kind":"byok","name":"Live web scouting and game plans","detail":"Runs on your own Anthropic or OpenRouter key, from this browser. The model is asked to search sites such as Eventbrite, promoter sites, USDA markets and municipal permits; FieldRadar does not call those itself, and does not verify what comes back.","evidence":["api.anthropic.com","openrouter.ai/api/v1/chat/completions"]},
+  {"id":"demo-data","kind":"generated","name":"Demo data","detail":"Generated sample events and template game plans, always labeled as sample.","evidence":["function scoutDemo"]},
+  {"id":"hosted-ai","kind":"unavailable","name":"Hosted AI scouting","detail":"Not offered. This build has no server-side identity or spend limits, so the hosted endpoint refuses every request (HTTP 503). Use Model link instead.","evidence":["api/ai.js"]},
+  {"id":"usda-local-food","kind":"none","name":"USDA Local Food Portal","detail":"Farmers-market directory adapter.","module":"lib/adapters/usda-local-food.js","exports":["fetchUSDAFarmersMarkets"]},
+  {"id":"socrata-soda","kind":"none","name":"Socrata open data (Dallas, Austin permits)","detail":"City special-event permit adapter.","module":"lib/adapters/socrata-soda.js","exports":["fetchSocrataSpecialEvents"]},
+  {"id":"civicplus-rss","kind":"none","name":"CivicPlus municipal calendars","detail":"City and county calendar RSS parser.","module":"lib/adapters/civicplus-rss.js","exports":["parseCivicPlusXml"]},
+  {"id":"wordpress-tribe","kind":"none","name":"WordPress Tribe Events","detail":"Chamber and festival calendar adapter.","module":"lib/adapters/wordpress-tribe.js","exports":["fetchWordPressTribeEvents"]},
+  {"id":"eventbrite-discovery","kind":"none","name":"Eventbrite discovery","detail":"A formatter for Eventbrite-shaped data. It does not fetch anything.","module":"lib/adapters/eventbrite-discovery.js","exports":["formatEventbriteVendorEvent"]},
+  {"id":"major-promoters","kind":"none","name":"Major promoter registry","detail":"A static contact table for Nationwide Expos, American Consumer Shows, Marketplace Events and Show Technology.","module":"lib/adapters/major-promoters.js","exports":["PROMOTER_NETWORKS"]},
+  {"id":"census-acs","kind":"none","name":"Census housing enrichment","detail":"An offline table of home values for a few metros. Home values on cards come from the catalog or the model, not from this module.","module":"lib/enrichment/census-acs.js","exports":["enrichWithCensusHousing"]}
+];
+/* SOURCE_REGISTRY:END */
+
+/* Status text is derived from the registry kind plus live config. Only the "none" kind may use
+   the negative phrase; nothing here may claim a link the code does not make. */
+const SOURCE_STATUS = {
+  bundled:{dot:"good",text:"In use"},
+  browser:{dot:"good",text:"Used while you type a market"},
+  unavailable:{dot:"off",text:"Unavailable by design"},
+  none:{dot:"off",text:"Not connected in this build"},
+};
+function sourceStatus(src,{cfg,linkState}){
+  if(src.kind==="byok"){
+    const keyed=cfg.provider==="openrouter"?!!cfg.orKey:!!cfg.apiKey;
+    if(!keyed)return {dot:"off",text:"Needs your own key"};
+    if(linkState==="ok")return {dot:"good",text:"Key saved · link up"};
+    if(linkState==="fail")return {dot:"error",text:"Key saved · link down"};
+    return {dot:"caution",text:"Key saved · not tested"};
+  }
+  if(src.kind==="generated")return cfg.demo?{dot:"caution",text:"On: events are samples"}:{dot:"off",text:"Off"};
+  return SOURCE_STATUS[src.kind];
+}
+
+/* Catalog figures are computed from the bundled events, never typed in. "On file" means the field
+   is non-empty in the data; it is not a check that the link or date is still valid. */
+const STATE_NAMES={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming"};
+const CATALOG_STATS=(()=>{
+  const total=P0_SEED_EVENTS.length;
+  const onFile=f=>P0_SEED_EVENTS.filter(e=>String(e[f]==null?"":e[f]).trim()!=="").length;
+  const byState={};
+  P0_SEED_EVENTS.forEach(e=>{const m=String(e.city||"").match(/,\s*([A-Z]{2})\b/);const k=m?m[1]:"";byState[k]=(byState[k]||0)+1;});
+  return {total,appUrl:onFile("appUrl"),deadline:onFile("appDeadline"),org:onFile("org"),
+    byState:Object.entries(byState).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))};
+})();
+const pctOf=(n,t)=>t?Math.round(n/t*100):0;
+
 /* ============ UI atoms ============ */
 /* One semantic scale for the score: pass < watchlist < prime (green intensity). */
 const TIER={"Strongly Recommended":{key:"prime",label:"Prime"},"Conditional":{key:"watch",label:"Watchlist"}};
@@ -753,11 +821,21 @@ function ScoreBadge({score,verdict}){
     <span className="score-tier"><i className={"dot dot-"+t.key} aria-hidden="true"></i>{t.label}</span>
   </div>;
 }
-function Metric({label,value}){
+function Metric({label,value,note}){
   return <div className="metric">
     <div className="kpi-label">{label}</div>
     <div className="kpi-value">{value}</div>
+    {note&&<div className="metric-note">{note}</div>}
   </div>;
+}
+function SourceRow({src,status}){
+  return <li className="source-row" data-source-id={src.id} data-kind={src.kind}>
+    <div className="source-head">
+      <span className="source-name">{src.name}</span>
+      <span className="source-status"><i className={"dot dot-"+status.dot} aria-hidden="true"></i>{status.text}</span>
+    </div>
+    <p className="source-detail">{src.detail}</p>
+  </li>;
 }
 function Num({label,value,onChange,prefix,suffix,step}){
   return <label className="field">
@@ -1584,43 +1662,46 @@ function App(){
       </div>
     </div>}
 
-    {/* ===== national coverage & data-ops modal drawer ===== */}
+    {/* ===== sources & coverage modal drawer ===== */}
     <ModalDrawer
       id="modal-coverage"
       titleId="coverage-dialog-title"
-      title="National data-ops & coverage"
+      title="Sources & coverage"
       isOpen={showCoverage}
       onClose={()=>setShowCoverage(false)}
       triggerRef={coverageBtnRef}
     >
       <p className="drawer-lede">
-        National Field Opportunity Intelligence Graph — Backbone status, active data adapters, and vendor opportunity completeness.
+        What this build actually uses to find and score events. None of it is a live availability feed: confirm dates, attendance and vendor openings with each organizer.
       </p>
 
-      <SectionLabel>Data-ops metrics</SectionLabel>
+      <SectionLabel>Bundled catalog</SectionLabel>
       <div className="metric-grid">
-        <Metric label="Verified P0" value={P0_SEED_EVENTS.length}/>
-        <Metric label="App links" value="100%"/>
-        <Metric label="Deadlines" value="100%"/>
-        <Metric label="Organizers" value="100%"/>
+        <Metric label="Events in catalog" value={fmtN(CATALOG_STATS.total)}/>
+        <Metric label="Application link on file" value={pctOf(CATALOG_STATS.appUrl,CATALOG_STATS.total)+"%"} note={CATALOG_STATS.appUrl+" of "+CATALOG_STATS.total}/>
+        <Metric label="Deadline on file" value={pctOf(CATALOG_STATS.deadline,CATALOG_STATS.total)+"%"} note={CATALOG_STATS.deadline+" of "+CATALOG_STATS.total}/>
+        <Metric label="Organizer on file" value={pctOf(CATALOG_STATS.org,CATALOG_STATS.total)+"%"} note={CATALOG_STATS.org+" of "+CATALOG_STATS.total}/>
       </div>
+      <p className="field-hint">"On file" means the field is filled in. It does not mean the link or date has been re-checked.</p>
 
-      <SectionLabel>Connected platform adapters</SectionLabel>
-      <ul className="plain-list">
-        <li><b>USDA Local Food Portal API</b> — 8,000+ Farmers Markets (P0)</li>
-        <li><b>Socrata SODA Open Data</b> — City Special Events &amp; Street Permits</li>
-        <li><b>CivicPlus Municipal RSS</b> — City &amp; County Parks &amp; Rec Calendars</li>
-        <li><b>WordPress Tribe Events REST</b> — Chamber of Commerce &amp; Festival Feeds</li>
-        <li><b>Census ACS Demographic Layer</b> — Housing Value &amp; Owner-Occupancy</li>
-        <li><b>DeepSeek / GPT-4o-Mini Scout</b> — Live Web &amp; Vendor Packet Extractor</li>
+      <SectionLabel>Catalog events by state</SectionLabel>
+      <ul className="plain-list state-list" aria-label="Catalog events by state">
+        {CATALOG_STATS.byState.map(([code,n])=>
+          <li key={code||"unknown"}><span>{code?(STATE_NAMES[code]||code):"State not listed"}</span><b>{n}</b></li>)}
+      </ul>
+      <p className="field-hint">States not listed have no catalog events. Live scouting with your own key can look anywhere.</p>
+
+      <SectionLabel>Used in this build</SectionLabel>
+      <ul className="source-list" aria-label="Sources used in this build">
+        {SOURCE_REGISTRY.filter(src=>src.kind!=="none").map(src=>
+          <SourceRow key={src.id} src={src} status={sourceStatus(src,{cfg,linkState})}/>)}
       </ul>
 
-      <SectionLabel>State-by-state P0 highlights</SectionLabel>
-      <ul className="plain-list">
-        <li><b>Texas (DFW · Tyler · Austin · Houston · SATX):</b> 7 flagship shows verified</li>
-        <li><b>Alabama (Mobile · Baldwin · Foley · Gulf Shores · BHM):</b> 4 flagship events verified</li>
-        <li><b>Georgia (Atlanta · Perry · Duluth/Gwinnett):</b> 3 flagship expos verified</li>
-        <li><b>Florida &amp; Carolinas (Tampa · Charlotte):</b> Hurricane &amp; remodeling expos verified</li>
+      <SectionLabel>Not connected in this build</SectionLabel>
+      <p className="field-hint" style={{marginTop:0}}>Library code in the repository. Nothing in the app or its API calls it, so none of these contribute events or numbers today.</p>
+      <ul className="source-list" aria-label="Sources not connected in this build">
+        {SOURCE_REGISTRY.filter(src=>src.kind==="none").map(src=>
+          <SourceRow key={src.id} src={src} status={sourceStatus(src,{cfg,linkState})}/>)}
       </ul>
 
       <div style={{marginTop:22}}>
